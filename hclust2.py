@@ -47,7 +47,8 @@ class DataMatrix:
         self.args = args
         toskip = [int(l) for l in self.args.skip_rows.split(",")]  if self.args.skip_rows else None
         self.table = pd.read_table( 
-                input_file, sep = self.args.sep, skipinitialspace = True, skiprows = toskip,
+                input_file, sep = self.args.sep, # skipinitialspace = True, 
+                                  skiprows = toskip,
                                   header = self.args.fname_row if self.args.fname_row > -1 else None,
                                   index_col = self.args.sname_row if self.args.sname_row > -1 else None
                                     )
@@ -226,8 +227,24 @@ class Heatmap:
                         (0.50, 1.0, 1.0),
                         (0.75, 0.0, 0.0),
                         (1.0, 0.0, 1.0))}
+
+    bcry = {'red':  (   (0.0, 0.0, 0.0),
+                        (0.33, 0.0, 0.0),
+                        (0.66, 1.0, 1.0),
+                        (1.0, 1.0, 1.0)),
+             'green': ( (0.0, 0.0, 0.0),
+                        (0.33, 1.0, 1.0),
+                        (0.66, 0.0, 0.0),
+                        (1.0, 1.0, 1.0)),
+             'blue': (  (0.0, 1.0, 1.0),
+                        (0.33, 1.0, 1.0),
+                        (0.66, 0.0, 0.0),
+                        (1.0, 0.0, 1.0))}
+    
+
     my_colormaps = [    ('bbcyr',bbcyr),
-                        ('bbcry',bbcry)]
+                        ('bbcry',bbcry),
+                        ('bcry',bcry)]
     
 
     @staticmethod
@@ -251,10 +268,10 @@ class Heatmap:
              help = "Max number of chars to report for sample labels [default 15]" )
         arg( '--max_flabel_len', type=int, default=25,
              help = "Max number of chars to report for feature labels [default 15]" )
-        arg( '--sdend_width', type=float, default=0.1,
-             help = "Width of the sample dendrogram [default 0.1 meaning 10%% of heatmap width]")
-        arg( '--fdend_height', type=float, default=0.1,
-             help = "Height of the feature dendrogram [default 0.1 meaning 10%% of heatmap width]")
+        arg( '--sdend_width', type=float, default=1.0,
+             help = "Width of the sample dendrogram [default 1 meaning 100%% of default heatmap width]")
+        arg( '--fdend_height', type=float, default=1.0,
+             help = "Height of the feature dendrogram [default 1 meaning 100%% of default heatmap width]")
         arg( '--image_size', type=float, default=8,
              help = "Size of the largest between width and eight size for the image in inches [default 8]")
         arg( '--cell_aspect_ratio', type=float, default=1.0,
@@ -274,6 +291,8 @@ class Heatmap:
             my_cmap = matplotlib.colors.LinearSegmentedColormap(n,c,256)
             pylab.register_cmap(name=n,cmap=my_cmap)
         arg( '-c','--colormap', type=str, choices = col_maps, default = 'bbcry' )
+        arg( '--bottom_c', type=str, default = None,
+             help = "Color to use for cells below the minimum value of the scale [default None meaining bottom color of the scale]")
 
         
 
@@ -310,6 +329,9 @@ class Heatmap:
         bottom_col = [  cm._segmentdata['red'][0][1],
                         cm._segmentdata['green'][0][1],
                         cm._segmentdata['blue'][0][1]   ]
+        if self.args.bottom_c:
+            bottom_col = self.args.bottom_c
+            cm.set_under( bottom_col )
 
         def make_ticklabels_invisible(ax):
             for tl in ax.get_xticklabels() + ax.get_yticklabels():
@@ -323,7 +345,7 @@ class Heatmap:
 
         def shrink_labels( labels, n ):
             shrink = lambda x: x[:n/2]+" [...] "+x[-n/2:]
-            return [(shrink(l) if len(l) > n else l) for l in labels]
+            return [(shrink(str(l)) if len(str(l)) > n else l) for l in labels]
         
 
         #gs = gridspec.GridSpec( 4, 2, 
@@ -342,8 +364,8 @@ class Heatmap:
         print buf_space
         
         gs = gridspec.GridSpec( 4, 4, 
-                                width_ratios=[ buf_space, buf_space*2, .08,0.9], 
-                                height_ratios=[ buf_space, buf_space*2, .08,0.9], 
+                                width_ratios=[ buf_space, buf_space*2, .08*self.args.fdend_height,0.9], 
+                                height_ratios=[ buf_space, buf_space*2, .08*self.args.sdend_width,0.9], 
                                 wspace = 0.0, hspace = 0.0 )
 
         ax_hm = plt.subplot(gs[15], axisbg = bottom_col  )
