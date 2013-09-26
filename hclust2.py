@@ -151,9 +151,16 @@ class HClustering:
         arg( '--slinkage', type=str, default="average",
              help = "Linkage method for sample clustering [default average]")
 
-    def get_reordered_matrix( self, matrix ):
-        idx1, idx2 = self.sdendrogram['leaves'][::-1], self.fdendrogram['leaves']
-        return matrix[idx1,:][:,idx2]
+    def get_reordered_matrix( self, matrix, sclustering = True, fclustering = True ):
+        idx1 = self.sdendrogram['leaves'][::-1] if sclustering else None
+        idx2 = self.fdendrogram['leaves'] if fclustering else None
+        #idx1, idx2 = self.sdendrogram['leaves'][::-1], self.fdendrogram['leaves']
+        if sclustering and fclustering:
+            return matrix[idx1,:][:,idx2]
+        if sclustering:
+            return matrix[idx1,:][:]
+        if sclustering:
+            return matrix[:][:,idx2]
 
     def get_reordered_sample_labels( self, slabels ):
         return [slabels[i] for i in self.sdendrogram['leaves']]
@@ -547,8 +554,8 @@ if __name__ == '__main__':
     hmp = dm.get_numpy_matrix()
     fnames = dm.get_fnames()
     snames = dm.get_snames()
-    if not ( args.no_sclustering or args.no_fclustering ):
-        hmp = cl.get_reordered_matrix( hmp  )
+    #if not ( args.no_sclustering or args.no_fclustering ):
+    hmp = cl.get_reordered_matrix( hmp, sclustering = not args.no_sclustering, fclustering = not args.no_fclustering  )
     if not args.no_sclustering:
         snames = cl.get_reordered_sample_labels( snames )
     if not args.no_fclustering:
