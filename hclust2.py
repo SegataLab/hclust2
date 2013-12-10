@@ -12,6 +12,76 @@ import pandas as pd
 
 # samples on rows
 
+class SqrtNorm(matplotlib.colors.Normalize):
+    """
+    Normalize a given value to the 0-1 range on a square root scale
+    """
+    def __call__(self, value, clip=None):
+        if clip is None:
+            clip = self.clip
+
+        result, is_scalar = self.process_value(value)
+
+        result = np.ma.masked_less_equal(result, 0, copy=False)
+
+        self.autoscale_None(result)
+        vmin, vmax = self.vmin, self.vmax
+        if vmin > vmax:
+            raise ValueError("minvalue must be less than or equal to maxvalue")
+        elif vmin <= 0:
+            raise ValueError("values must all be positive")
+        elif vmin == vmax:
+            result.fill(0)
+        else:
+            if clip:
+                mask = np.ma.getmask(result)
+                result = np.ma.array(np.clip(result.filled(vmax), vmin, vmax),
+                                  mask=mask)
+            # in-place equivalent of above can be much faster
+            resdat = result.data
+            mask = result.mask
+            if mask is np.ma.nomask:
+                mask = (resdat <= 0)
+            else:
+                mask |= resdat <= 0
+            matplotlib.cbook._putmask(resdat, mask, 1)
+            np.sqrt(resdat, resdat)
+            resdat -= np.sqrt(vmin)
+            resdat /= (np.sqrt(vmax) - np.sqrt(vmin))
+            result = np.ma.array(resdat, mask=mask, copy=False)
+        if is_scalar:
+            result = result[0]
+        return result
+
+    def inverse(self, value):
+        if not self.scaled():
+            raise ValueError("Not invertible until scaled")
+        vmin, vmax = self.vmin, self.vmax
+
+        if matplotlib.cbook.iterable(value):
+            val = np.ma.asarray(value)
+            return vmin * np.ma.power((vmax / vmin), val)
+        else:
+            return vmin * pow((vmax / vmin), value)
+
+    def autoscale(self, A):
+        '''
+        Set *vmin*, *vmax* to min, max of *A*.
+        '''
+        A = np.ma.masked_less_equal(A, 0, copy=False)
+        self.vmin = np.ma.min(A)
+        self.vmax = np.ma.max(A)
+
+    def autoscale_None(self, A):
+        ' autoscale only None-valued vmin or vmax'
+        if self.vmin is not None and self.vmax is not None:
+            return
+        A = np.ma.masked_less_equal(A, 0, copy=False)
+        if self.vmin is None:
+            self.vmin = np.ma.min(A)
+        if self.vmax is None:
+            self.vmax = np.ma.max(A)
+
 class DataMatrix:
     datatype = 'data_matrix'
     
@@ -62,12 +132,12 @@ class DataMatrix:
         if not self.args.def_na is None:
             self.table = self.table.fillna( self.args.def_na )
 
-        if self.args.stop:
-            select( self.args.sperc, self.args.stop )
-        
         if self.args.ftop:
+            select( self.args.sperc, self.args.ftop )
+        
+        if self.args.stop:
             self.table = self.table.T 
-            select( self.args.fperc, self.args.ftop ) 
+            select( self.args.fperc, self.args.stop ) 
             self.table = self.table.T
         
 
@@ -330,7 +400,6 @@ class Heatmap:
         rat *= self.args.cell_aspect_ratio
         x,y = (self.args.image_size,rat*self.args.image_size) if rat < 1 else (self.args.image_size/rat,self.args.image_size)
         fig = plt.figure( figsize=(x,y), facecolor = 'w'  )
-        print x,y
 
         cm = pylab.get_cmap(self.args.colormap)
         bottom_col = [  cm._segmentdata['red'][0][1],
@@ -365,10 +434,8 @@ class Heatmap:
        
         buf_space = 0.05
         minv = min( [buf_space*8, 8*rat*buf_space] )
-        print buf_space
         if minv < 0.05:
             buf_space /= minv/0.05
-        print buf_space
         
         gs = gridspec.GridSpec( 4, 4, 
                                 width_ratios=[ buf_space, buf_space*2, .08*self.args.fdend_height,0.9], 
@@ -382,7 +449,7 @@ class Heatmap:
         norm_f = matplotlib.colors.LogNorm if self.args.log_scale else matplotlib.colors.Normalize
         minv, maxv = 0.0, None
         im = ax_hm.imshow( self.numpy_matrix, #origin='lower', 
-                                interpolation = 'None',  aspect='auto', 
+                                interpolation = 'nearest',  aspect='auto', 
                                 extent = [0, self.nf, 0, self.ns], 
                                 cmap=cm, 
                                 vmin=self.args.minv,
@@ -429,62 +496,6 @@ class Heatmap:
             ax_den_right.set_xlim([xmax,0])
             make_ticklabels_invisible( ax_den_right )
 
-        
-
-        #axmatrix.set_ylim(0,100)
-        #axmatrix2 = axmatrix.twinx()
-        """
-
-        axmatrix.set_xticks([])
-        axmatrix2.set_xticks([])
-        axmatrix3.set_xticks([])
-        axmatrix.set_yticks([])
-        axmatrix2.set_yticks([])
-        axmatrix3.set_yticks([])
-    
-        axmatrix.set_xticklabels([])
-        axmatrix2.set_xticklabels([])
-        axmatrix3.set_xticklabels([])
-        axmatrix.set_yticklabels([])
-        axmatrix2.set_yticklabels([])
-        axmatrix3.set_yticklabels([])
-        """
-       
-        #axmatrix.set_xticks(np.arange(len(fnames)))
-        #axmatrix.set_xticklabels(fnames,rotation=90,va='top',ha='center',size=10)
-        """
-        axmatrix2.set_yticks(np.arange(len(snames)))
-        axmatrix2.set_yticklabels(snames,va='center',size=10)
-        """
-
-        """
-        if not self.args.no_fclustering:
-            #axmatrix.set_xticks(np.arange(self.nf)*10+5.0)
-            print snames
-       
-            #axmatrix.set_xticklabels([cols[r] for r in idx2],size=label_font_size,rotation=90,va='top',ha='center')
-            ax_fd = divider1.append_axes("top", 0.5, pad=0.0, frameon = False  )
-            sph._plot_dendrogram( self.fdendrogram['icoord'], self.fdendrogram['dcoord'], self.fdendrogram['ivl'],
-                                  self.ns + 1, self.nf + 1, 1, 'top', no_labels=True,
-                                  color_list=self.fdendrogram['color_list'] )
-            ax_fd.set_xticks([])
-            ax_fd.set_yticks([])
-            #ax_fd.set_yticklabels([])
-            #ax_fd.set_xticklabels([])
-        if not self.args.no_sclustering:
-            #axmatrix2.set_ylim([0,self.ns+0.5])
-            #axmatrix2 = axmatrix.twinx()
-            #axmatrix2.set_yticks(np.arange(self.ns+6)+0.5)
-            #axmatrix2.set_yticks(np.arange(self.ns)*0.9+0.5)
-            ax_sd = divider1.append_axes("left", 0.5, pad=0.0, frameon = False ) #, sharex = axmatrix )
-            sph._plot_dendrogram( self.sdendrogram['icoord'], self.sdendrogram['dcoord'], self.sdendrogram['ivl'],
-                                  self.ns + 1, self.nf + 1, 1, 'right', no_labels=True,
-                                  color_list=self.sdendrogram['color_list'] )
-            ax_sd.set_xticks([])
-            ax_sd.set_yticks([])
-            #ax_sd.set_xticklabels([])
-            #ax_sd.set_yticklabels([])
-        """
         
         if not self.args.out:
             plt.show( )
