@@ -10,6 +10,8 @@ import matplotlib
 import pylab
 import pandas as pd
 
+sys.setrecursionlimit(10000)
+
 # samples on rows
 
 class SqrtNorm(matplotlib.colors.Normalize):
@@ -133,11 +135,11 @@ class DataMatrix:
             self.table = self.table.fillna( self.args.def_na )
 
         if self.args.ftop:
-            select( self.args.sperc, self.args.ftop )
+            select( self.args.fperc, self.args.ftop )
         
         if self.args.stop:
             self.table = self.table.T 
-            select( self.args.fperc, self.args.stop ) 
+            select( self.args.sperc, self.args.stop ) 
             self.table = self.table.T
         
 
@@ -345,6 +347,10 @@ class Heatmap:
              help = "Max number of chars to report for sample labels [default 15]" )
         arg( '--max_flabel_len', type=int, default=25,
              help = "Max number of chars to report for feature labels [default 15]" )
+        arg( '--flabel_size', type=int, default=10,
+             help = "Feature label font size [default 10]" )
+        arg( '--slabel_size', type=int, default=10,
+             help = "Sample label font size [default 10]" )
         arg( '--sdend_width', type=float, default=1.0,
              help = "Width of the sample dendrogram [default 1 meaning 100%% of default heatmap width]")
         arg( '--fdend_height', type=float, default=1.0,
@@ -461,14 +467,14 @@ class Heatmap:
         ax_hm.set_xticks(np.arange(len(fnames))+0.5)
         if not self.args.no_flabels:
             fnames_short = shrink_labels( fnames, self.args.max_flabel_len )
-            ax_hm.set_xticklabels(fnames,rotation=90,va='top',ha='center',size=10)
+            ax_hm.set_xticklabels(fnames,rotation=90,va='top',ha='center',size=self.args.flabel_size)
         else:
             ax_hm.set_xticklabels([])
         ax_hm_y2.set_ylim([0,self.ns])
         ax_hm_y2.set_yticks(np.arange(len(snames))+0.5)
         if not self.args.no_slabels:
             snames_short = shrink_labels( snames, self.args.max_slabel_len )
-            ax_hm_y2.set_yticklabels(snames_short,va='center',size=10)
+            ax_hm_y2.set_yticklabels(snames_short,va='center',size=self.args.slabel_size)
         else:
             ax_hm_y2.set_yticklabels( [] )
         ax_hm.set_yticks([])
