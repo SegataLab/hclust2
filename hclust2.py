@@ -504,16 +504,18 @@ class Heatmap:
             values.append([mmap[v] for v in m])
             maps.append(mmap)
         mdmat = np.matrix(values)
-        cmap = matplotlib.colors.ListedColormap(['#FF4500','#008000','#03B4CC','#8B1A1A','#32CD32']) 
-        bounds = [-0.5,0.5,1.5,2.5,3.5,4.5]
+        pcolors = ['#FF4500','#008000','#03B4CC','#8B1A1A','#32CD32','#6959CD']
+        cmap = matplotlib.colors.ListedColormap(pcolors) 
+        #bounds = [-0.5,0.5,1.5,2.5,3.5,4.5]
+        bounds = [float(f)-0.5 for f in range(len(pcolors)+1)]
         #norm = matplotlib.colors.BoundaryNorm(bounds, cmap.N)
         imm = ax_metadata.imshow( mdmat, #origin='lower', 
                 interpolation = 'nearest',  
                                 aspect='auto', 
                                 extent = [0, self.nf, 0, self.ns], 
                                 cmap=cmap,
-                                vmin=-0.5,
-                                vmax=4.5,
+                                vmin=bounds[0],
+                                vmax=bounds[-1],
                                 #vmin=min(,
                                 #vmax=self.args.maxv, 
                                 #norm = norm
