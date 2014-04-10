@@ -504,9 +504,7 @@ class Heatmap:
             values.append([mmap[v] for v in m])
             maps.append(mmap)
         mdmat = np.matrix(values)
-        print maps[0]
         cmap = matplotlib.colors.ListedColormap(['#FF4500','#008000','#03B4CC','#8B1A1A','#32CD32']) 
-        print mdmat
         bounds = [-0.5,0.5,1.5,2.5,3.5,4.5]
         #norm = matplotlib.colors.BoundaryNorm(bounds, cmap.N)
         imm = ax_metadata.imshow( mdmat, #origin='lower', 
