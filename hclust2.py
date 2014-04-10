@@ -101,6 +101,9 @@ class DataMatrix:
         arg( '--sname_row', type=int, default=0,
              help = "column number containing the names of the samples "
                     "[default 0, specify -1 if no names are present in the matrix")
+        arg( '--metadata_rows', type=str, default=None,
+             help = "Row numbers to use as emtadata"
+                    "[default None, meaning no metadata")
         arg( '--skip_rows', type=str, default=None,
              help = "Row numbers to skip (0-indexed, comma separated) from the input file"
                     "[default None, meaning no rows skipped")
@@ -117,13 +120,27 @@ class DataMatrix:
 
     def __init__( self, input_file, args ):
         self.args = args
+        self.metadata_rows =  [] 
+        self.metadata_table = None
         toskip = [int(l) for l in self.args.skip_rows.split(",")]  if self.args.skip_rows else None
+        if self.args.metadata_rows:
+            self.metadata_rows = list([int(a) for a in self.args.metadata_rows.split(",")])
+            for t in toskip:
+                for i,m in enumerate(self.metadata_rows):
+                    if t < m:
+                        self.metadata_rows[i] -= 1
+        #toskip = sorted(list(set(toskip) | set(self.metadata_rows)))
         self.table = pd.read_table( 
                 input_file, sep = self.args.sep, # skipinitialspace = True, 
                                   skiprows = toskip,
-                                  header = self.args.fname_row if self.args.fname_row > -1 else None,
+                                  #header = self.metadata_rows,
+                                  header = [self.args.fname_row]+self.metadata_rows if self.args.fname_row > -1 else self.metadata_rows,
+                                  #header = self.args.fname_row if self.args.fname_row > -1 else None,
                                   index_col = self.args.sname_row if self.args.sname_row > -1 else None
                                     )
+        #print self.table
+        #if self.args.metadata_rows:
+        #    self.metadata_table = self.table.columns
 
         def select( perc, top  ): 
             self.table['perc'] = self.table.apply(lambda x: stats.scoreatpercentile(x,perc),axis=1)
@@ -148,11 +165,14 @@ class DataMatrix:
     def get_numpy_matrix( self ): 
         return np.matrix(self.table)
     
+    #def get_metadata_matrix( self ):
+    #    return self.table.columns
+    
     def get_snames( self ):
         return list(self.table.index)
     
     def get_fnames( self ):
-        return list(self.table.columns)
+        return self.table.columns
    
     def save_matrix( self, output_file ):
         self.table.to_csv( output_file, sep = '\t' )
@@ -375,7 +395,11 @@ class Heatmap:
             pylab.register_cmap(name=n,cmap=my_cmap)
         arg( '-c','--colormap', type=str, choices = col_maps, default = 'bbcry' )
         arg( '--bottom_c', type=str, default = None,
-             help = "Color to use for cells below the minimum value of the scale [default None meaining bottom color of the scale]")
+             help = "Color to use for cells below the minimum value of the scale [default None meaning bottom color of the scale]")
+        arg( '--top_c', type=str, default = None,
+             help = "Color to use for cells below the maximum value of the scale [default None meaning bottom color of the scale]")
+        arg( '--nan_c', type=str, default = None,
+             help = "Color to use for nan cells  [default None]")
 
         
 
@@ -413,7 +437,16 @@ class Heatmap:
                         cm._segmentdata['blue'][0][1]   ]
         if self.args.bottom_c:
             bottom_col = self.args.bottom_c
-            cm.set_under( bottom_col )
+        cm.set_under( bottom_col )
+        top_col = [  cm._segmentdata['red'][-1][1],
+                     cm._segmentdata['green'][-1][1],
+                     cm._segmentdata['blue'][-1][1]   ]
+        if self.args.top_c:
+            top_col = self.args.top_c
+        cm.set_over( top_col )
+
+        if self.args.nan_c:
+            cm.set_bad( self.args.nan_c  )
 
         def make_ticklabels_invisible(ax):
             for tl in ax.get_xticklabels() + ax.get_yticklabels():
@@ -443,17 +476,55 @@ class Heatmap:
         if minv < 0.05:
             buf_space /= minv/0.05
         
-        gs = gridspec.GridSpec( 4, 4, 
+        gs = gridspec.GridSpec( 5, 4, 
                                 width_ratios=[ buf_space, buf_space*2, .08*self.args.fdend_height,0.9], 
-                                height_ratios=[ buf_space, buf_space*2, .08*self.args.sdend_width,0.9], 
+                                height_ratios=[ buf_space, buf_space*2, .08*self.args.sdend_width,0.1,0.9], 
                                 wspace = 0.0, hspace = 0.0 )
 
-        ax_hm = plt.subplot(gs[15], axisbg = bottom_col  )
+        ax_hm = plt.subplot(gs[19], axisbg = bottom_col  )
+        ax_metadata = plt.subplot(gs[15], axisbg = bottom_col  )
         ax_hm_y2 = ax_hm.twinx() 
-
 
         norm_f = matplotlib.colors.LogNorm if self.args.log_scale else matplotlib.colors.Normalize
         minv, maxv = 0.0, None
+
+        #print metadata_matrix
+       
+        
+        #for f in fnames:
+        #    for i,v in enumerate(f[1:]):
+        #        print v
+
+        metadata = zip(*[list(f[1:]) for f in fnames])
+
+        maps = []
+        values = []
+        for m in metadata:
+            mmap = dict([(v[1],v[0]) for v in enumerate(list(set(m)))])
+            values.append([mmap[v] for v in m])
+            maps.append(mmap)
+        mdmat = np.matrix(values)
+        print maps[0]
+        cmap = matplotlib.colors.ListedColormap(['#FF4500','#008000','#03B4CC','#8B1A1A','#32CD32']) 
+        print mdmat
+        bounds = [-0.5,0.5,1.5,2.5,3.5,4.5]
+        #norm = matplotlib.colors.BoundaryNorm(bounds, cmap.N)
+        imm = ax_metadata.imshow( mdmat, #origin='lower', 
+                interpolation = 'nearest',  
+                                aspect='auto', 
+                                extent = [0, self.nf, 0, self.ns], 
+                                cmap=cmap,
+                                vmin=-0.5,
+                                vmax=4.5,
+                                #vmin=min(,
+                                #vmax=self.args.maxv, 
+                                #norm = norm
+                                )
+        ax_metadata.set_xticks([])
+        ax_metadata.set_yticks([])
+        remove_splines( ax_metadata )
+        #v = plt.colorbar(imm, cmap=cmap, ticks=[v+0.5 for v in bounds[:-1]] )
+
         im = ax_hm.imshow( self.numpy_matrix, #origin='lower', 
                                 interpolation = 'nearest',  aspect='auto', 
                                 extent = [0, self.nf, 0, self.ns], 
@@ -464,10 +535,10 @@ class Heatmap:
                                 )
         
         #ax_hm.set_ylim([0,800])
-        ax_hm.set_xticks(np.arange(len(fnames))+0.5)
+        ax_hm.set_xticks(np.arange(len(list(fnames)))+0.5)
         if not self.args.no_flabels:
-            fnames_short = shrink_labels( fnames, self.args.max_flabel_len )
-            ax_hm.set_xticklabels(fnames,rotation=90,va='top',ha='center',size=self.args.flabel_size)
+            fnames_short = shrink_labels( list([f[0] for f in fnames]), self.args.max_flabel_len )
+            ax_hm.set_xticklabels(fnames_short,rotation=90,va='top',ha='center',size=self.args.flabel_size)
         else:
             ax_hm.set_xticklabels([])
         ax_hm_y2.set_ylim([0,self.ns])
@@ -494,7 +565,7 @@ class Heatmap:
             ax_den_top.set_ylim([0,ymax])
             make_ticklabels_invisible( ax_den_top )
         if not self.args.no_sclustering:
-            ax_den_right = plt.subplot(gs[14], axisbg = 'b', frameon = False)
+            ax_den_right = plt.subplot(gs[18], axisbg = 'b', frameon = False)
             sph._plot_dendrogram(   self.sdendrogram['icoord'], self.sdendrogram['dcoord'], self.sdendrogram['ivl'],
                                     self.ns + 1, self.nf + 1, 1, 'right', no_labels=True,
                                     color_list=self.sdendrogram['color_list'] )
