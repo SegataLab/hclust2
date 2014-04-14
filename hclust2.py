@@ -9,6 +9,10 @@ import matplotlib
 #matplotlib.use('Agg')
 import pylab
 import pandas as pd
+from matplotlib.patches import Rectangle
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 
 sys.setrecursionlimit(10000)
 
@@ -122,26 +126,24 @@ class DataMatrix:
         self.args = args
         self.metadata_rows =  [] 
         self.metadata_table = None
-        toskip = [int(l) for l in self.args.skip_rows.split(",")]  if self.args.skip_rows else None
+        toskip = [int(l) for l in self.args.skip_rows.split(",")]  if self.args.skip_rows else [] 
         if self.args.metadata_rows:
             self.metadata_rows = list([int(a) for a in self.args.metadata_rows.split(",")])
             for t in toskip:
                 for i,m in enumerate(self.metadata_rows):
-                    if t < m:
+                    if t <= m:
                         self.metadata_rows[i] -= 1
-        #toskip = sorted(list(set(toskip) | set(self.metadata_rows)))
+        if self.metadata_rows:
+            header = [self.args.fname_row]+self.metadata_rows if self.args.fname_row > -1 else self.metadata_rows
+        else:
+            header = self.args.fname_row if self.args.fname_row > -1 else None
         self.table = pd.read_table( 
                 input_file, sep = self.args.sep, # skipinitialspace = True, 
                                   skiprows = toskip,
-                                  #header = self.metadata_rows,
-                                  header = [self.args.fname_row]+self.metadata_rows if self.args.fname_row > -1 else self.metadata_rows,
-                                  #header = self.args.fname_row if self.args.fname_row > -1 else None,
+                                  header = header,
                                   index_col = self.args.sname_row if self.args.sname_row > -1 else None
                                     )
-        #print self.table
-        #if self.args.metadata_rows:
-        #    self.metadata_table = self.table.columns
-
+        
         def select( perc, top  ): 
             self.table['perc'] = self.table.apply(lambda x: stats.scoreatpercentile(x,perc),axis=1)
             m = sorted(self.table['perc'])[-top]
@@ -172,6 +174,8 @@ class DataMatrix:
         return list(self.table.index)
     
     def get_fnames( self ):
+        #print self.table.columns.names
+        #print self.table.columns
         return self.table.columns
    
     def save_matrix( self, output_file ):
@@ -344,7 +348,9 @@ class Heatmap:
     my_colormaps = [    ('bbcyr',bbcyr),
                         ('bbcry',bbcry),
                         ('bcry',bcry)]
-    
+   
+    dcols = ['#ca0000','#0087ff','#00ba1d','#cf00ff','#00dbe2','#ffaf00','#0017f4','#006012','#e175ff','#877878','#050505','#b5cf00','#ff8a8a','#aa6400','#50008a','#00ff58']
+
 
     @staticmethod
     def input_parameters( parser ):
@@ -375,6 +381,8 @@ class Heatmap:
              help = "Width of the sample dendrogram [default 1 meaning 100%% of default heatmap width]")
         arg( '--fdend_height', type=float, default=1.0,
              help = "Height of the feature dendrogram [default 1 meaning 100%% of default heatmap width]")
+        arg( '--metadata_height', type=float, default=.05,
+             help = "Height of the metadata panel [default 0.05 meaning 5%% of default heatmap height]")
         arg( '--image_size', type=float, default=8,
              help = "Size of the largest between width and eight size for the image in inches [default 8]")
         arg( '--cell_aspect_ratio', type=float, default=1.0,
@@ -410,21 +418,44 @@ class Heatmap:
              help = "Linkage method for sample clustering [default average]")
         """
 
-    def __init__( self, numpy_matrix, sdendrogram, fdendrogram, snames, fnames, args = None ):
+    def __init__( self, numpy_matrix, sdendrogram, fdendrogram, snames, fnames, fnames_meta, args = None ):
         self.numpy_matrix = numpy_matrix
         self.sdendrogram = sdendrogram
         self.fdendrogram = fdendrogram
         self.snames = snames
         self.fnames = fnames
+        self.fnames_meta = fnames_meta
         self.ns,self.nf = self.numpy_matrix.shape
         self.args = args
 
-    
+    def make_legend( self, dmap, titles, out_fn ): 
+        figlegend = plt.figure(figsize=(3,2), frameon = False)
+
+        gs = gridspec.GridSpec( 1, len(dmap), wspace = 5.0  )
+
+        for i,(d,title) in enumerate(zip(dmap,titles)):
+            legax = plt.subplot(gs[i],frameon = False)
+            for k,v in sorted(d.items(),key=lambda x:x[1]):
+                rect = Rectangle( [0.0, 0.0], 0.0, 0.0,
+                                  facecolor = self.dcols[v%len(self.dcols)],
+                                  label = k,
+                                  edgecolor='b', lw = 0.0)
+
+                legax.add_patch(rect)
+        #remove_splines( legax )
+            legax.set_xticks([])
+            legax.set_yticks([])
+            legax.legend( loc = 2, frameon = False, title = title) 
+        """
+                      ncol = legend_ncol, bbox_to_anchor=(1.01, 3.),
+                      borderpad = 0.0, labelspacing = 0.0,
+                      handlelength = 0.5, handletextpad = 0.3,
+                      borderaxespad = 0.0, columnspacing = 0.3,
+                      prop = {'size':fontsize}, frameon = False)
+        """
+        figlegend.savefig(out_fn, bbox_inches='tight')
     
     def draw( self ):
-        from mpl_toolkits.axes_grid1 import make_axes_locatable
-        import matplotlib.pyplot as plt
-        import matplotlib.gridspec as gridspec
 
         rat = float(self.ns)/self.nf
         rat *= self.args.cell_aspect_ratio
@@ -478,7 +509,7 @@ class Heatmap:
         
         gs = gridspec.GridSpec( 5, 4, 
                                 width_ratios=[ buf_space, buf_space*2, .08*self.args.fdend_height,0.9], 
-                                height_ratios=[ buf_space, buf_space*2, .08*self.args.sdend_width,0.1,0.9], 
+                                height_ratios=[ buf_space, buf_space*2, .08*self.args.sdend_width,self.args.metadata_height,0.9], 
                                 wspace = 0.0, hspace = 0.0 )
 
         ax_hm = plt.subplot(gs[19], axisbg = bottom_col  )
@@ -488,43 +519,41 @@ class Heatmap:
         norm_f = matplotlib.colors.LogNorm if self.args.log_scale else matplotlib.colors.Normalize
         minv, maxv = 0.0, None
 
-        #print metadata_matrix
-       
-        
-        #for f in fnames:
-        #    for i,v in enumerate(f[1:]):
-        #        print v
+        maps, values, ndv = [], [], 0
+        if type(fnames[0]) is tuple and len(fnames[0]) > 1:
+            metadata = zip(*[list(f[1:]) for f in fnames])
+            for m in metadata:
+                mmap = dict([(v[1],ndv+v[0]) for v in enumerate(list(set(m)))])
+                values.append([mmap[v] for v in m])
+                ndv += len(mmap)
+                maps.append(mmap)
+            dcols = [] 
+            mdmat = np.matrix(values)
+            while len(dcols) < ndv:
+                dcols += self.dcols
+            cmap = matplotlib.colors.ListedColormap(dcols[:ndv]) 
+            bounds = [float(f)-0.5 for f in range(ndv+1)]
+            imm = ax_metadata.imshow( mdmat, #origin='lower', 
+                    interpolation = 'nearest',  
+                                    aspect='auto', 
+                                    extent = [0, self.nf, 0, self.ns], 
+                                    cmap=cmap,
+                                    vmin=bounds[0],
+                                    vmax=bounds[-1],
+                                    )
+            remove_splines( ax_metadata )
+            ax_metadata_y2 = ax_metadata.twinx() 
+            ax_metadata_y2.set_ylim(0,len(self.fnames_meta))
+            ax_metadata.set_yticks([])
+            ax_metadata_y2.set_ylim(0,len(self.fnames_meta))
+            ax_metadata_y2.tick_params(length=0)
+            ax_metadata_y2.set_yticks(np.arange(len(self.fnames_meta))+0.5)
+            ax_metadata_y2.set_yticklabels(self.fnames_meta[::-1], va='center',size=self.args.slabel_size)
+        else:
+            ax_metadata.set_yticks([])
 
-        metadata = zip(*[list(f[1:]) for f in fnames])
-
-        maps = []
-        values = []
-        for m in metadata:
-            mmap = dict([(v[1],v[0]) for v in enumerate(list(set(m)))])
-            values.append([mmap[v] for v in m])
-            maps.append(mmap)
-        mdmat = np.matrix(values)
-        pcolors = ['#FF4500','#008000','#03B4CC','#8B1A1A','#32CD32','#6959CD']
-        cmap = matplotlib.colors.ListedColormap(pcolors) 
-        #bounds = [-0.5,0.5,1.5,2.5,3.5,4.5]
-        bounds = [float(f)-0.5 for f in range(len(pcolors)+1)]
-        #norm = matplotlib.colors.BoundaryNorm(bounds, cmap.N)
-        imm = ax_metadata.imshow( mdmat, #origin='lower', 
-                interpolation = 'nearest',  
-                                aspect='auto', 
-                                extent = [0, self.nf, 0, self.ns], 
-                                cmap=cmap,
-                                vmin=bounds[0],
-                                vmax=bounds[-1],
-                                #vmin=min(,
-                                #vmax=self.args.maxv, 
-                                #norm = norm
-                                )
         ax_metadata.set_xticks([])
-        ax_metadata.set_yticks([])
-        remove_splines( ax_metadata )
-        #v = plt.colorbar(imm, cmap=cmap, ticks=[v+0.5 for v in bounds[:-1]] )
-
+        
         im = ax_hm.imshow( self.numpy_matrix, #origin='lower', 
                                 interpolation = 'nearest',  aspect='auto', 
                                 extent = [0, self.nf, 0, self.ns], 
@@ -578,6 +607,10 @@ class Heatmap:
             plt.show( )
         else:
             fig.savefig( self.args.out, bbox_inches='tight', dpi = self.args.dpi )
+            if maps: 
+                self.make_legend( maps, fnames_meta, self.args.legend_file ) 
+
+
 
 class ReadCmd:
 
@@ -592,6 +625,8 @@ class ReadCmd:
              help= "The input matrix" )
         arg( '-o', '--out', metavar='OUTPUT_FILE', type=str, nargs='?', default=None,
              help= "The output image file [image on screen of not specified]" )
+        arg( '--legend_file', metavar='LEGEND_FILE', type=str, nargs='?', default=None,
+             help= "The output file for the legend of the provided metadata" )
 
         input_types = [DataMatrix.datatype,DistMatrix.datatype]
         arg( '-t', '--input_type', metavar='INPUT_TYPE', type=str, choices = input_types, 
@@ -641,15 +676,16 @@ if __name__ == '__main__':
     
     hmp = dm.get_numpy_matrix()
     fnames = dm.get_fnames()
+    fnames_meta = fnames.names[1:]
     snames = dm.get_snames()
-    #if not ( args.no_sclustering or args.no_fclustering ):
-    hmp = cl.get_reordered_matrix( hmp, sclustering = not args.no_sclustering, fclustering = not args.no_fclustering  )
+    if not ( args.no_sclustering or args.no_fclustering ):
+        hmp = cl.get_reordered_matrix( hmp, sclustering = not args.no_sclustering, fclustering = not args.no_fclustering  )
     if not args.no_sclustering:
         snames = cl.get_reordered_sample_labels( snames )
     if not args.no_fclustering:
         fnames = cl.get_reordered_feature_labels( fnames )
 
-    hm = Heatmap( hmp, cl.sdendrogram, cl.fdendrogram, snames, fnames, args = args )
+    hm = Heatmap( hmp, cl.sdendrogram, cl.fdendrogram, snames, fnames, fnames_meta, args = args )
     hm.draw()
 
 
