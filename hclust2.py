@@ -201,25 +201,22 @@ class DistMatrix:
         arg( '--s_dist_f', type=str, default="euclidean",
              help = "Distance function for sample [default euclidean]")
     
-    def __init__( self, data, feats = None, samples = None, args = None ):
-        self.f = feats
-        self.s = samples
-        
-        self.fdf = args.f_dist_f
+    def __init__( self, data, args = None ):
         self.sdf = args.s_dist_f
+        self.fdf = args.f_dist_f
 
-        self.f_cdist_matrix = None
-        self.s_cdist_matrix = None
+        self.s_cdist_matrix, self.f_cdist_matrix = None, None
 
         self.numpy_full_matrix = (data if 
                 type(data) == np.matrixlib.defmatrix.matrix else None)
     
-    def compute_s_dists( self ):
-        self.s_cdist_matrix = spd.pdist( self.numpy_full_matrix, self.sdf ) 
-    
     def compute_f_dists( self ):
+        dt = self.numpy_full_matrix
+        self.f_cdist_matrix = spd.pdist( dt, self.fdf ) 
+    
+    def compute_s_dists( self ):
         dt = self.numpy_full_matrix.transpose()
-        self.f_cdist_matrix = spd.pdist( dt, self.fdf )
+        self.s_cdist_matrix = spd.pdist( dt, self.sdf )
 
     def get_s_dm( self ):
         return self.s_cdist_matrix
@@ -548,7 +545,7 @@ class Heatmap:
             ax_metadata_y2.set_ylim(0,len(self.fnames_meta))
             ax_metadata_y2.tick_params(length=0)
             ax_metadata_y2.set_yticks(np.arange(len(self.fnames_meta))+0.5)
-            ax_metadata_y2.set_yticklabels(self.fnames_meta[::-1], va='center',size=self.args.slabel_size)
+            ax_metadata_y2.set_yticklabels(self.fnames_meta[::-1], va='center',size=self.args.flabel_size)
         else:
             ax_metadata.set_yticks([])
 
@@ -567,14 +564,14 @@ class Heatmap:
         ax_hm.set_xticks(np.arange(len(list(fnames)))+0.5)
         if not self.args.no_flabels:
             fnames_short = shrink_labels( list([f[0] for f in fnames]), self.args.max_flabel_len )
-            ax_hm.set_xticklabels(fnames_short,rotation=90,va='top',ha='center',size=self.args.flabel_size)
+            ax_hm.set_xticklabels(fnames_short,rotation=90,va='top',ha='center',size=self.args.slabel_size)
         else:
             ax_hm.set_xticklabels([])
         ax_hm_y2.set_ylim([0,self.ns])
         ax_hm_y2.set_yticks(np.arange(len(snames))+0.5)
         if not self.args.no_slabels:
             snames_short = shrink_labels( snames, self.args.max_slabel_len )
-            ax_hm_y2.set_yticklabels(snames_short,va='center',size=self.args.slabel_size)
+            ax_hm_y2.set_yticklabels(snames_short,va='center',size=self.args.flabel_size)
         else:
             ax_hm_y2.set_yticklabels( [] )
         ax_hm.set_yticks([])
@@ -668,7 +665,7 @@ if __name__ == '__main__':
     else:
         pass
 
-    cl = HClustering( distm.get_s_dm(), distm.get_f_dm(), args = args )
+    cl = HClustering( distm.get_f_dm(), distm.get_s_dm(), args = args )
     if not args.no_sclustering:
         cl.shcluster()
     if not args.no_fclustering:
