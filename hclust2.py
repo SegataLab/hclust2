@@ -359,6 +359,8 @@ class Heatmap:
              help = "Image resolution in dpi [default 150]")
         arg( '-l', '--log_scale', action='store_true',
              help = "Log scale" )
+        arg( '-s', '--sqrt_scale', action='store_true',
+             help = "Square root scale" )
         arg( '--no_slabels', action='store_true',
              help = "Do not show sample labels" )
         arg( '--minv', type=float, default=None,
@@ -514,8 +516,11 @@ class Heatmap:
         ax_metadata = plt.subplot(gs[15], axisbg = bottom_col  )
         ax_hm_y2 = ax_hm.twinx() 
 
-        norm_f = matplotlib.colors.LogNorm if self.args.log_scale else matplotlib.colors.Normalize
-        #norm_f = SqrtNorm if self.args.log_scale else matplotlib.colors.Normalize
+        norm_f = matplotlib.colors.Normalize
+        if self.args.log_scale:
+            norm_f = matplotlib.colors.LogNorm
+        elif self.args.sqrt_scale:
+            norm_f = SqrtNorm
         minv, maxv = 0.0, None
 
         maps, values, ndv = [], [], 0
@@ -583,7 +588,7 @@ class Heatmap:
         #ax_hm.set_xlim([0,self.ns])
         ax_cm = plt.subplot(gs[3], axisbg = 'r', frameon = False)
         #fig.colorbar(im, ax_cm, orientation = 'horizontal', spacing = 'proportional', format = ticker.LogFormatterMathtext() )
-        fig.colorbar(im, ax_cm, orientation = 'horizontal') # , format = ticker.LogFormatterMathtext() )
+        fig.colorbar(im, ax_cm, orientation = 'horizontal', spacing='proportional' if self.args.sqrt_scale else 'uniform' ) # , format = ticker.LogFormatterMathtext() )
 
         if not self.args.no_fclustering:
             ax_den_top = plt.subplot(gs[11], axisbg = 'r', frameon = False)
