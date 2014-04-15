@@ -2,6 +2,7 @@
 
 import sys
 import numpy as np
+import matplotlib.ticker as ticker
 import scipy.spatial.distance as spd 
 import scipy.cluster.hierarchy as sph
 from scipy import stats
@@ -514,6 +515,7 @@ class Heatmap:
         ax_hm_y2 = ax_hm.twinx() 
 
         norm_f = matplotlib.colors.LogNorm if self.args.log_scale else matplotlib.colors.Normalize
+        #norm_f = SqrtNorm if self.args.log_scale else matplotlib.colors.Normalize
         minv, maxv = 0.0, None
 
         maps, values, ndv = [], [], 0
@@ -562,16 +564,16 @@ class Heatmap:
         
         #ax_hm.set_ylim([0,800])
         ax_hm.set_xticks(np.arange(len(list(fnames)))+0.5)
-        if not self.args.no_flabels:
-            fnames_short = shrink_labels( list([f[0] for f in fnames]), self.args.max_flabel_len )
-            ax_hm.set_xticklabels(fnames_short,rotation=90,va='top',ha='center',size=self.args.slabel_size)
+        if not self.args.no_slabels:
+            snames_short = shrink_labels( list([f[0] for f in fnames]), self.args.max_slabel_len )
+            ax_hm.set_xticklabels(snames_short,rotation=90,va='top',ha='center',size=self.args.slabel_size)
         else:
             ax_hm.set_xticklabels([])
         ax_hm_y2.set_ylim([0,self.ns])
         ax_hm_y2.set_yticks(np.arange(len(snames))+0.5)
-        if not self.args.no_slabels:
-            snames_short = shrink_labels( snames, self.args.max_slabel_len )
-            ax_hm_y2.set_yticklabels(snames_short,va='center',size=self.args.flabel_size)
+        if not self.args.no_flabels:
+            fnames_short = shrink_labels( snames, self.args.max_flabel_len )
+            ax_hm_y2.set_yticklabels(fnames_short,va='center',size=self.args.flabel_size)
         else:
             ax_hm_y2.set_yticklabels( [] )
         ax_hm.set_yticks([])
@@ -580,7 +582,8 @@ class Heatmap:
         ax_hm_y2.tick_params(length=0)
         #ax_hm.set_xlim([0,self.ns])
         ax_cm = plt.subplot(gs[3], axisbg = 'r', frameon = False)
-        fig.colorbar(im, ax_cm, orientation = 'horizontal' )
+        #fig.colorbar(im, ax_cm, orientation = 'horizontal', spacing = 'proportional', format = ticker.LogFormatterMathtext() )
+        fig.colorbar(im, ax_cm, orientation = 'horizontal') # , format = ticker.LogFormatterMathtext() )
 
         if not self.args.no_fclustering:
             ax_den_top = plt.subplot(gs[11], axisbg = 'r', frameon = False)
