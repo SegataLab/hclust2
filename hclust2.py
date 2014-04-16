@@ -130,8 +130,9 @@ class DataMatrix:
         toskip = [int(l) for l in self.args.skip_rows.split(",")]  if self.args.skip_rows else [] 
         if self.args.metadata_rows:
             self.metadata_rows = list([int(a) for a in self.args.metadata_rows.split(",")])
+            mdr = self.metadata_rows[::]
             for t in toskip:
-                for i,m in enumerate(self.metadata_rows):
+                for i,m in enumerate(mdr):
                     if t <= m:
                         self.metadata_rows[i] -= 1
         if self.metadata_rows:
@@ -429,9 +430,9 @@ class Heatmap:
         self.args = args
 
     def make_legend( self, dmap, titles, out_fn ): 
-        figlegend = plt.figure(figsize=(3,2), frameon = False)
+        figlegend = plt.figure(figsize=(1+3*len(titles),2), frameon = False)
 
-        gs = gridspec.GridSpec( 1, len(dmap), wspace = 5.0  )
+        gs = gridspec.GridSpec( 1, len(dmap), wspace = 2.0  )
 
         for i,(d,title) in enumerate(zip(dmap,titles)):
             legax = plt.subplot(gs[i],frameon = False)
