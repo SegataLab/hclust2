@@ -173,12 +173,13 @@ class DataMatrix:
     #    return self.table.columns
     
     def get_snames( self ):
-        return list(self.table.index)
+        #return list(self.table.index)
+        return self.table.columns
     
     def get_fnames( self ):
         #print self.table.columns.names
         #print self.table.columns
-        return self.table.columns
+        return list(self.table.index)
    
     def save_matrix( self, output_file ):
         self.table.to_csv( output_file, sep = '\t' )
@@ -247,15 +248,18 @@ class HClustering:
              help = "Linkage method for sample clustering [default average]")
 
     def get_reordered_matrix( self, matrix, sclustering = True, fclustering = True ):
-        idx1 = self.sdendrogram['leaves'][::-1] if sclustering else None
-        idx2 = self.fdendrogram['leaves'] if fclustering else None
-        #idx1, idx2 = self.sdendrogram['leaves'][::-1], self.fdendrogram['leaves']
+        if not sclustering and not fclustering:
+            return matrix
+        
+        idx1 = self.sdendrogram['leaves'] if sclustering else None   # !!!!!!!!!!!
+        idx2 = self.fdendrogram['leaves'][::-1] if fclustering else None
+
         if sclustering and fclustering:
-            return matrix[idx1,:][:,idx2]
-        if sclustering:
-            return matrix[idx1,:][:]
-        if sclustering:
-            return matrix[:][:,idx2]
+            return matrix[idx2,:][:,idx1]
+        if fclustering:
+            return matrix[idx2,:][:]
+        if sclustering: # !!!!!!!!!!!!
+            return matrix[:][:,idx1]
 
     def get_reordered_sample_labels( self, slabels ):
         return [slabels[i] for i in self.sdendrogram['leaves']]
@@ -378,10 +382,10 @@ class Heatmap:
              help = "Feature label font size [default 10]" )
         arg( '--slabel_size', type=int, default=10,
              help = "Sample label font size [default 10]" )
-        arg( '--sdend_width', type=float, default=1.0,
-             help = "Width of the sample dendrogram [default 1 meaning 100%% of default heatmap width]")
-        arg( '--fdend_height', type=float, default=1.0,
-             help = "Height of the feature dendrogram [default 1 meaning 100%% of default heatmap width]")
+        arg( '--fdend_width', type=float, default=1.0,
+             help = "Width of the feature dendrogram [default 1 meaning 100%% of default heatmap width]")
+        arg( '--sdend_height', type=float, default=1.0,
+             help = "Height of the sample dendrogram [default 1 meaning 100%% of default heatmap height]")
         arg( '--metadata_height', type=float, default=.05,
              help = "Height of the metadata panel [default 0.05 meaning 5%% of default heatmap height]")
         arg( '--image_size', type=float, default=8,
@@ -509,8 +513,8 @@ class Heatmap:
             buf_space /= minv/0.05
         
         gs = gridspec.GridSpec( 5, 4, 
-                                width_ratios=[ buf_space, buf_space*2, .08*self.args.fdend_height,0.9], 
-                                height_ratios=[ buf_space, buf_space*2, .08*self.args.sdend_width,self.args.metadata_height,0.9], 
+                                width_ratios=[ buf_space, buf_space*2, .08*self.args.fdend_width,0.9], 
+                                height_ratios=[ buf_space, buf_space*2, .08*self.args.sdend_height,self.args.metadata_height,0.9], 
                                 wspace = 0.0, hspace = 0.0 )
 
         ax_hm = plt.subplot(gs[19], axisbg = bottom_col  )
@@ -525,8 +529,8 @@ class Heatmap:
         minv, maxv = 0.0, None
 
         maps, values, ndv = [], [], 0
-        if type(fnames[0]) is tuple and len(fnames[0]) > 1:
-            metadata = zip(*[list(f[1:]) for f in fnames])
+        if type(snames[0]) is tuple and len(snames[0]) > 1:
+            metadata = zip(*[list(s[1:]) for s in snames])
             for m in metadata:
                 mmap = dict([(v[1],ndv+v[0]) for v in enumerate(list(set(m)))])
                 values.append([mmap[v] for v in m])
@@ -569,16 +573,16 @@ class Heatmap:
                                 )
         
         #ax_hm.set_ylim([0,800])
-        ax_hm.set_xticks(np.arange(len(list(fnames)))+0.5)
+        ax_hm.set_xticks(np.arange(len(list(snames)))+0.5)
         if not self.args.no_slabels:
-            snames_short = shrink_labels( list([f[0] for f in fnames]), self.args.max_slabel_len )
+            snames_short = shrink_labels( list([s[0] for s in snames]), self.args.max_slabel_len )
             ax_hm.set_xticklabels(snames_short,rotation=90,va='top',ha='center',size=self.args.slabel_size)
         else:
             ax_hm.set_xticklabels([])
         ax_hm_y2.set_ylim([0,self.ns])
-        ax_hm_y2.set_yticks(np.arange(len(snames))+0.5)
+        ax_hm_y2.set_yticks(np.arange(len(fnames))+0.5)
         if not self.args.no_flabels:
-            fnames_short = shrink_labels( snames, self.args.max_flabel_len )
+            fnames_short = shrink_labels( fnames, self.args.max_flabel_len )
             ax_hm_y2.set_yticklabels(fnames_short,va='center',size=self.args.flabel_size)
         else:
             ax_hm_y2.set_yticklabels( [] )
@@ -591,20 +595,20 @@ class Heatmap:
         #fig.colorbar(im, ax_cm, orientation = 'horizontal', spacing = 'proportional', format = ticker.LogFormatterMathtext() )
         fig.colorbar(im, ax_cm, orientation = 'horizontal', spacing='proportional' if self.args.sqrt_scale else 'uniform' ) # , format = ticker.LogFormatterMathtext() )
 
-        if not self.args.no_fclustering:
+        if not self.args.no_sclustering:
             ax_den_top = plt.subplot(gs[11], axisbg = 'r', frameon = False)
-            sph._plot_dendrogram( self.fdendrogram['icoord'], self.fdendrogram['dcoord'], self.fdendrogram['ivl'],
+            sph._plot_dendrogram( self.sdendrogram['icoord'], self.sdendrogram['dcoord'], self.sdendrogram['ivl'],
                                   self.ns + 1, self.nf + 1, 1, 'top', no_labels=True,
-                                  color_list=self.fdendrogram['color_list'] )
-            ymax = max([max(a) for a in self.fdendrogram['dcoord']])
+                                  color_list=self.sdendrogram['color_list'] )
+            ymax = max([max(a) for a in self.sdendrogram['dcoord']])
             ax_den_top.set_ylim([0,ymax])
             make_ticklabels_invisible( ax_den_top )
-        if not self.args.no_sclustering:
+        if not self.args.no_fclustering:
             ax_den_right = plt.subplot(gs[18], axisbg = 'b', frameon = False)
-            sph._plot_dendrogram(   self.sdendrogram['icoord'], self.sdendrogram['dcoord'], self.sdendrogram['ivl'],
+            sph._plot_dendrogram(   self.fdendrogram['icoord'], self.fdendrogram['dcoord'], self.fdendrogram['ivl'],
                                     self.ns + 1, self.nf + 1, 1, 'right', no_labels=True,
-                                    color_list=self.sdendrogram['color_list'] )
-            xmax = max([max(a) for a in self.sdendrogram['dcoord']])
+                                    color_list=self.fdendrogram['color_list'] )
+            xmax = max([max(a) for a in self.fdendrogram['dcoord']])
             ax_den_right.set_xlim([xmax,0])
             make_ticklabels_invisible( ax_den_right )
 
@@ -674,7 +678,7 @@ if __name__ == '__main__':
     else:
         pass
 
-    cl = HClustering( distm.get_f_dm(), distm.get_s_dm(), args = args )
+    cl = HClustering( distm.get_s_dm(), distm.get_f_dm(), args = args )
     if not args.no_sclustering:
         cl.shcluster()
     if not args.no_fclustering:
@@ -682,10 +686,11 @@ if __name__ == '__main__':
     
     hmp = dm.get_numpy_matrix()
     fnames = dm.get_fnames()
-    fnames_meta = fnames.names[1:]
     snames = dm.get_snames()
-    if not ( args.no_sclustering or args.no_fclustering ):
-        hmp = cl.get_reordered_matrix( hmp, sclustering = not args.no_sclustering, fclustering = not args.no_fclustering  )
+    fnames_meta = snames.names[1:]
+    #if not args.no_sclustering or not args.no_fclustering ):
+    
+    hmp = cl.get_reordered_matrix( hmp, sclustering = not args.no_sclustering, fclustering = not args.no_fclustering  )
     if not args.no_sclustering:
         snames = cl.get_reordered_sample_labels( snames )
     if not args.no_fclustering:
