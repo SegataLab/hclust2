@@ -458,7 +458,8 @@ class Heatmap:
                       borderaxespad = 0.0, columnspacing = 0.3,
                       prop = {'size':fontsize}, frameon = False)
         """
-        figlegend.savefig(out_fn, bbox_inches='tight')
+        if out_fn:
+            figlegend.savefig(out_fn, bbox_inches='tight')
     
     def draw( self ):
 
@@ -511,10 +512,10 @@ class Heatmap:
         minv = min( [buf_space*8, 8*rat*buf_space] )
         if minv < 0.05:
             buf_space /= minv/0.05
-        
+        metadata_height = self.args.metadata_height if type(snames[0]) is tuple and len(snames[0]) > 1 else 0.000001 
         gs = gridspec.GridSpec( 5, 4, 
                                 width_ratios=[ buf_space, buf_space*2, .08*self.args.fdend_width,0.9], 
-                                height_ratios=[ buf_space, buf_space*2, .08*self.args.sdend_height,self.args.metadata_height,0.9], 
+                                height_ratios=[ buf_space, buf_space*2, .08*self.args.sdend_height,metadata_height,0.9], 
                                 wspace = 0.0, hspace = 0.0 )
 
         ax_hm = plt.subplot(gs[19], axisbg = bottom_col  )
@@ -575,7 +576,7 @@ class Heatmap:
         #ax_hm.set_ylim([0,800])
         ax_hm.set_xticks(np.arange(len(list(snames)))+0.5)
         if not self.args.no_slabels:
-            snames_short = shrink_labels( list([s[0] for s in snames]), self.args.max_slabel_len )
+            snames_short = shrink_labels( list([s[0] for s in snames]) if type(snames[0]) is tuple else snames, self.args.max_slabel_len )
             ax_hm.set_xticklabels(snames_short,rotation=90,va='top',ha='center',size=self.args.slabel_size)
         else:
             ax_hm.set_xticklabels([])
