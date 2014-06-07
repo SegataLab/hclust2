@@ -107,7 +107,7 @@ class DataMatrix:
              help = "column number containing the names of the samples "
                     "[default 0, specify -1 if no names are present in the matrix")
         arg( '--metadata_rows', type=str, default=None,
-             help = "Row numbers to use as emtadata"
+             help = "Row numbers to use as metadata"
                     "[default None, meaning no metadata")
         arg( '--skip_rows', type=str, default=None,
              help = "Row numbers to skip (0-indexed, comma separated) from the input file"
@@ -117,7 +117,7 @@ class DataMatrix:
         arg( '--fperc', type=int, default=90, 
              help = "Percentile of feature value distribution for sample selection" )
         arg( '--stop', type=int, default=None, 
-             help = "Number of top samples to select (ordering based on percentile specified by --fperc)" )
+             help = "Number of top samples to select (ordering based on percentile specified by --sperc)" )
         arg( '--ftop', type=int, default=None, 
              help = "Number of top features to select (ordering based on percentile specified by --fperc)" )
         arg( '--def_na', type=float, default=None,
@@ -141,8 +141,8 @@ class DataMatrix:
             header = self.args.fname_row if self.args.fname_row > -1 else None
         self.table = pd.read_table( 
                 input_file, sep = self.args.sep, # skipinitialspace = True, 
-                                  skiprows = toskip,
-                                  header = header,
+                                  skiprows = sorted(toskip) if type(toskip) is list else toskip,
+                                  header = sorted(header) if type(header) is list else header,
                                   index_col = self.args.sname_row if self.args.sname_row > -1 else None
                                     )
         
@@ -180,7 +180,10 @@ class DataMatrix:
         #print self.table.columns.names
         #print self.table.columns
         return list(self.table.index)
-   
+    
+    def get_averages(self, by_row = True) :
+        return self.table.mean(axis=1 if by_row else 0)
+    
     def save_matrix( self, output_file ):
         self.table.to_csv( output_file, sep = '\t' )
 
