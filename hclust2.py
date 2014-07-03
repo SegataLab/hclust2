@@ -218,10 +218,28 @@ class DistMatrix:
     
     def compute_f_dists( self ):
         dt = self.numpy_full_matrix
+        
+        if self.fdf == "spearman":
+            dt_ranked = np.matrix([stats.rankdata(d) for d in dt])
+            self.f_cdist_matrix = spd.pdist( dt_ranked, "correlation" )
+            return
+        
+        if self.fdf == "pearson":
+            self.fdf = 'correlation'
+
         self.f_cdist_matrix = spd.pdist( dt, self.fdf ) 
     
     def compute_s_dists( self ):
         dt = self.numpy_full_matrix.transpose()
+        
+        if self.sdf == "spearman":
+            dt_ranked = np.matrix([stats.rankdata(d) for d in dt])
+            self.s_cdist_matrix = spd.pdist( dt_ranked, "correlation" )
+            return
+        
+        if self.sdf == "pearson":
+            self.sdf = 'correlation'
+        
         self.s_cdist_matrix = spd.pdist( dt, self.sdf )
 
     def get_s_dm( self ):
