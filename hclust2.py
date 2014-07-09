@@ -149,7 +149,7 @@ class DataMatrix:
         def select( perc, top  ): 
             self.table['perc'] = self.table.apply(lambda x: stats.scoreatpercentile(x,perc),axis=1)
             m = sorted(self.table['perc'])[-top]
-            self.table = self.table[self.table['perc'] > m ]
+            self.table = self.table[self.table['perc'] >= m ]
             del self.table['perc'] 
         
         if not self.args.def_na is None:
