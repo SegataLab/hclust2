@@ -138,11 +138,11 @@ class DataMatrix:
         if self.metadata_rows:
             header = [self.args.fname_row]+self.metadata_rows if self.args.fname_row > -1 else self.metadata_rows
         else:
-            header = self.args.fname_row if self.args.fname_row > -1 else None
+            header = self.args.fname_row if self.args.fname_row > -1 else None        
         self.table = pd.read_table( 
                 input_file, sep = self.args.sep, # skipinitialspace = True, 
-                                  skiprows = sorted(toskip) if type(toskip) is list else toskip,
-                                  header = sorted(header) if type(header) is list else header,
+                                  skiprows = sorted(toskip) if isinstance(toskip, list) else toskip,
+                                  header = sorted(header) if isinstance(header, list) else header,
                                   index_col = self.args.sname_row if self.args.sname_row > -1 else None
                                     )
         
@@ -182,7 +182,7 @@ class DataMatrix:
         return list(self.table.index)
     
     def get_averages(self, by_row = True) :
-        return self.table.mean(axis=1 if by_row else 0)
+        return self.table.mean(axis = 1 if by_row else 0)
     
     def save_matrix( self, output_file ):
         self.table.to_csv( output_file, sep = '\t' )
