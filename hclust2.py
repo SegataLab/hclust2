@@ -717,6 +717,8 @@ if __name__ == '__main__':
         snames = cl.get_reordered_sample_labels( snames )
     if not args.no_fclustering:
         fnames = cl.get_reordered_feature_labels( fnames )
+    else:
+        fnames = fnames[::-1]
 
     hm = Heatmap( hmp, cl.sdendrogram, cl.fdendrogram, snames, fnames, fnames_meta, args = args )
     hm.draw()
