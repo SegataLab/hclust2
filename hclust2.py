@@ -409,6 +409,8 @@ class Heatmap:
              help = "Height of the sample dendrogram [default 1 meaning 100%% of default heatmap height]")
         arg( '--metadata_height', type=float, default=.05,
              help = "Height of the metadata panel [default 0.05 meaning 5%% of default heatmap height]")
+        arg( '--metadata_separation', type=float, default=.01,
+             help = "Distance between the metadata and data panels. [default 0.001 meaning 0.1%% of default heatmap height]")
         arg( '--image_size', type=float, default=8,
              help = "Size of the largest between width and eight size for the image in inches [default 8]")
         arg( '--cell_aspect_ratio', type=float, default=1.0,
@@ -534,12 +536,12 @@ class Heatmap:
         if minv < 0.05:
             buf_space /= minv/0.05
         metadata_height = self.args.metadata_height if type(snames[0]) is tuple and len(snames[0]) > 1 else 0.000001 
-        gs = gridspec.GridSpec( 5, 4, 
+        gs = gridspec.GridSpec( 6, 4, 
                                 width_ratios=[ buf_space, buf_space*2, .08*self.args.fdend_width,0.9], 
-                                height_ratios=[ buf_space, buf_space*2, .08*self.args.sdend_height,metadata_height,0.9], 
+                                height_ratios=[ buf_space, buf_space*2, .08*self.args.sdend_height, metadata_height, self.args.metadata_separation, 0.9], 
                                 wspace = 0.0, hspace = 0.0 )
 
-        ax_hm = plt.subplot(gs[19], axisbg = bottom_col  )
+        ax_hm = plt.subplot(gs[23], axisbg = bottom_col  )
         ax_metadata = plt.subplot(gs[15], axisbg = bottom_col  )
         ax_hm_y2 = ax_hm.twinx() 
 
@@ -626,7 +628,7 @@ class Heatmap:
             ax_den_top.set_ylim([0,ymax])
             make_ticklabels_invisible( ax_den_top )
         if not self.args.no_fclustering:
-            ax_den_right = plt.subplot(gs[18], axisbg = 'b', frameon = False)
+            ax_den_right = plt.subplot(gs[22], axisbg = 'b', frameon = False)
             sph._plot_dendrogram(   self.fdendrogram['icoord'], self.fdendrogram['dcoord'], self.fdendrogram['ivl'],
                                     self.ns + 1, self.nf + 1, 1, 'right', no_labels=True,
                                     color_list=self.fdendrogram['color_list'] )
