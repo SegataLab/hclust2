@@ -14,6 +14,7 @@ from matplotlib.patches import Rectangle
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import cPickle as pickle
 
 sys.setrecursionlimit(10000)
 
@@ -206,6 +207,14 @@ class DistMatrix:
              help = "Distance function for features [default correlation]")
         arg( '--s_dist_f', type=str, default="euclidean",
              help = "Distance function for sample [default euclidean]")
+        arg( '--load_dist_matrix_f', type=str, default=None,
+             help = "Load the distance matrix to be used for features [default None].")
+        arg( '--load_dist_matrix_s', type=str, default=None,
+             help = "Load the distance matrix to be used for samples [default None].")
+        arg( '--save_dist_matrix_f', type=str, default=None,
+             help = "Save the distance matrix for features to file [default None].")
+        arg( '--save_dist_matrix_s', type=str, default=None,
+             help = "Save the distance matrix for samples to file [default None].")
     
     def __init__( self, data, args = None ):
         self.sdf = args.s_dist_f
@@ -217,30 +226,47 @@ class DistMatrix:
                 type(data) == np.matrixlib.defmatrix.matrix else None)
     
     def compute_f_dists( self ):
-        dt = self.numpy_full_matrix
-        
-        if self.fdf == "spearman":
-            dt_ranked = np.matrix([stats.rankdata(d) for d in dt])
-            self.f_cdist_matrix = spd.pdist( dt_ranked, "correlation" )
-            return
-        
-        if self.fdf == "pearson":
-            self.fdf = 'correlation'
+        if args.load_dist_matrix_f:
+            with open( args.load_dist_matrix_f ) as inp:
+                self.f_cdist_matrix = pickle.load( inp )
 
-        self.f_cdist_matrix = spd.pdist( dt, self.fdf ) 
+        else:
+            dt = self.numpy_full_matrix
+            
+            if self.fdf == "spearman":
+                dt_ranked = np.matrix([stats.rankdata(d) for d in dt])
+                self.f_cdist_matrix = spd.pdist( dt_ranked, "correlation" )
+                return
+        
+            if self.fdf == "pearson":
+                self.fdf = 'correlation'
+
+            self.f_cdist_matrix = spd.pdist( dt, self.fdf )
+
+        if args.save_dist_matrix_f:
+            with open( args.save_dist_matrix_f, "wb" ) as outf:
+                pickle.dump( self.f_cdist_matrix, outf )
     
     def compute_s_dists( self ):
-        dt = self.numpy_full_matrix.transpose()
+        if args.load_dist_matrix_s:
+            with open( args.load_dist_matrix_s ) as inp:
+                self.s_cdist_matrix = pickle.load( inp )
+        else: 
+            dt = self.numpy_full_matrix.transpose()
+            
+            if self.sdf == "spearman":
+                dt_ranked = np.matrix([stats.rankdata(d) for d in dt])
+                self.s_cdist_matrix = spd.pdist( dt_ranked, "correlation" )
+                return
+            
+            if self.sdf == "pearson":
+                self.sdf = 'correlation'
         
-        if self.sdf == "spearman":
-            dt_ranked = np.matrix([stats.rankdata(d) for d in dt])
-            self.s_cdist_matrix = spd.pdist( dt_ranked, "correlation" )
-            return
+            self.s_cdist_matrix = spd.pdist( dt, self.sdf )
         
-        if self.sdf == "pearson":
-            self.sdf = 'correlation'
-        
-        self.s_cdist_matrix = spd.pdist( dt, self.sdf )
+        if args.save_dist_matrix_s:
+            with open( args.save_dist_matrix_s, "wb" ) as outf:
+                pickle.dump( self.s_cdist_matrix, outf )
 
     def get_s_dm( self ):
         return self.s_cdist_matrix
