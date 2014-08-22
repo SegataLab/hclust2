@@ -237,7 +237,12 @@ class DistMatrix:
                 dt_ranked = np.matrix([stats.rankdata(d) for d in dt])
                 self.f_cdist_matrix = spd.pdist( dt_ranked, "correlation" )
                 return
-        
+       
+            if self.fdf == 'mhamming':
+                dt_ranked = np.matrix([[(0 if l == 0 else 1) for l in np.nditer(d)] for d in dt])
+                self.f_cdist_matrix = spd.pdist( dt_ranked, "hamming" )
+                return
+
             if self.fdf == "pearson":
                 self.fdf = 'correlation'
 
@@ -258,7 +263,12 @@ class DistMatrix:
                 dt_ranked = np.matrix([stats.rankdata(d) for d in dt])
                 self.s_cdist_matrix = spd.pdist( dt_ranked, "correlation" )
                 return
-            
+ 
+            if self.sdf == 'mhamming':
+                dt_ranked = np.matrix([[(0 if l == 0 else 1) for l in np.nditer(d)] for d in dt])
+                self.s_cdist_matrix = spd.pdist( dt_ranked, "hamming" )
+                return
+           
             if self.sdf == "pearson":
                 self.sdf = 'correlation'
         
