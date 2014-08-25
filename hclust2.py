@@ -15,6 +15,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import cPickle as pickle
+import math 
 
 sys.setrecursionlimit(10000)
 
@@ -242,6 +243,11 @@ class DistMatrix:
                 dt_ranked = np.matrix([[(0 if l == 0 else 1) for l in np.nditer(d)] for d in dt])
                 self.f_cdist_matrix = spd.pdist( dt_ranked, "hamming" )
                 return
+            
+            if self.fdf == 'lbraycurtis':
+                dt_ranked = np.matrix([[(math.log(l) if l else 0.0) for l in np.nditer(d)] for d in dt])
+                self.f_cdist_matrix = spd.pdist( dt_ranked, "braycurtis" )
+                return
 
             if self.fdf == "pearson":
                 self.fdf = 'correlation'
@@ -267,6 +273,16 @@ class DistMatrix:
             if self.sdf == 'mhamming':
                 dt_ranked = np.matrix([[(0 if l == 0 else 1) for l in np.nditer(d)] for d in dt])
                 self.s_cdist_matrix = spd.pdist( dt_ranked, "hamming" )
+                return
+            
+            if self.sdf == 'lbraycurtis':
+                dt_ranked = np.matrix([[(math.log(l) if l else 0.0) for l in np.nditer(d)] for d in dt])
+                self.s_cdist_matrix = spd.pdist( dt_ranked, "braycurtis" )
+                return
+            
+            if self.sdf == 'sbraycurtis':
+                dt_ranked = np.matrix([[(math.sqrt(l) if l else 0.0) for l in np.nditer(d)] for d in dt])
+                self.s_cdist_matrix = spd.pdist( dt_ranked, "braycurtis" )
                 return
            
             if self.sdf == "pearson":
