@@ -699,7 +699,7 @@ class Heatmap:
             make_ticklabels_invisible( ax_den_right )
 
         if self.args.title:
-            plt.title(self.args.title)
+            fig.suptitle(self.args.title, x = 0.5, horizontalalignment = 'center')
         if not self.args.out:
             plt.show( )
         else:
