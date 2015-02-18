@@ -445,6 +445,8 @@ class Heatmap:
              help = "Image resolution in dpi [default 150]")
         arg( '-l', '--log_scale', action='store_true',
              help = "Log scale" )
+        arg( '--title', type=str, default=None,
+             help = "Title of the plot" )
         arg( '-s', '--sqrt_scale', action='store_true',
              help = "Square root scale" )
         arg( '--no_slabels', action='store_true',
@@ -696,7 +698,8 @@ class Heatmap:
             ax_den_right.set_xlim([xmax,0])
             make_ticklabels_invisible( ax_den_right )
 
-        
+        if self.args.title:
+            plt.title(self.args.title)
         if not self.args.out:
             plt.show( )
         else:
