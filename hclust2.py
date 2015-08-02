@@ -212,9 +212,13 @@ class DistMatrix:
              help = "Load the distance matrix to be used for features [default None].")
         arg( '--load_dist_matrix_s', type=str, default=None,
              help = "Load the distance matrix to be used for samples [default None].")
-        arg( '--save_dist_matrix_f', type=str, default=None,
+        arg( '--load_pickled_dist_matrix_f', type=str, default=None,
+             help = "Load the distance matrix to be used for features as previously saved as pickle file using hclust2 itself [default None].")
+        arg( '--load_pickled_dist_matrix_s', type=str, default=None,
+             help = "Load the distance matrix to be used for samples as previously saved as pickle file using hclust2 itself [default None].")
+        arg( '--save_pickled_dist_matrix_f', type=str, default=None,
              help = "Save the distance matrix for features to file [default None].")
-        arg( '--save_dist_matrix_s', type=str, default=None,
+        arg( '--save_pickled_dist_matrix_s', type=str, default=None,
              help = "Save the distance matrix for samples to file [default None].")
     
     def __init__( self, data, args = None ):
@@ -227,10 +231,11 @@ class DistMatrix:
                 type(data) == np.matrixlib.defmatrix.matrix else None)
     
     def compute_f_dists( self ):
-        if args.load_dist_matrix_f:
-            with open( args.load_dist_matrix_f ) as inp:
+        if args.load_pickled_dist_matrix_f:
+            with open( args.load_pickled_dist_matrix_f ) as inp:
                 self.f_cdist_matrix = pickle.load( inp )
-
+        elif args.load_dist_matrix_f:
+            self.f_cdist_matrix = spd.squareform( np.matrix( pd.read_table( args.load_dist_matrix_f, sep ='\t', index_col = None, header = None  ) ) )
         else:
             dt = self.numpy_full_matrix
             
@@ -254,14 +259,16 @@ class DistMatrix:
 
             self.f_cdist_matrix = spd.pdist( dt, self.fdf )
 
-        if args.save_dist_matrix_f:
-            with open( args.save_dist_matrix_f, "wb" ) as outf:
+        if args.save_pickled_dist_matrix_f:
+            with open( args.save_pickled_dist_matrix_f, "wb" ) as outf:
                 pickle.dump( self.f_cdist_matrix, outf )
     
     def compute_s_dists( self ):
-        if args.load_dist_matrix_s:
-            with open( args.load_dist_matrix_s ) as inp:
+        if args.load_pickled_dist_matrix_s:
+            with open( args.load_pickled_dist_matrix_s ) as inp:
                 self.s_cdist_matrix = pickle.load( inp )
+        elif args.load_dist_matrix_s:
+            self.s_cdist_matrix = spd.squareform( np.matrix( pd.read_table( args.load_dist_matrix_s, sep ='\t', index_col = None, header = None  ) ) )
         else: 
             dt = self.numpy_full_matrix.transpose()
             
@@ -290,8 +297,8 @@ class DistMatrix:
         
             self.s_cdist_matrix = spd.pdist( dt, self.sdf )
         
-        if args.save_dist_matrix_s:
-            with open( args.save_dist_matrix_s, "wb" ) as outf:
+        if args.save_pickled_dist_matrix_s:
+            with open( args.save_pickled_dist_matrix_s, "wb" ) as outf:
                 pickle.dump( self.s_cdist_matrix, outf )
 
     def get_s_dm( self ):
@@ -438,6 +445,8 @@ class Heatmap:
              help = "Image resolution in dpi [default 150]")
         arg( '-l', '--log_scale', action='store_true',
              help = "Log scale" )
+        arg( '--title', type=str, default=None,
+             help = "Title of the plot" )
         arg( '-s', '--sqrt_scale', action='store_true',
              help = "Square root scale" )
         arg( '--no_slabels', action='store_true',
@@ -689,7 +698,8 @@ class Heatmap:
             ax_den_right.set_xlim([xmax,0])
             make_ticklabels_invisible( ax_den_right )
 
-        
+        if self.args.title:
+            fig.suptitle(self.args.title, x = 0.5, horizontalalignment = 'center')
         if not self.args.out:
             plt.show( )
         else:
