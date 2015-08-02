@@ -7,7 +7,7 @@ import scipy.spatial.distance as spd
 import scipy.cluster.hierarchy as sph
 from scipy import stats
 import matplotlib
-#matplotlib.use('Agg')
+matplotlib.use('Agg')
 import pylab
 import pandas as pd
 from matplotlib.patches import Rectangle
