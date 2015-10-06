@@ -320,8 +320,12 @@ class HClustering:
                            "ward" ]
         arg( '--no_fclustering', action='store_true',
              help = "avoid clustering features" )
+        arg( '--no_plot_fclustering', action='store_true',
+             help = "avoid plotting the feature dendrogram" )
         arg( '--no_sclustering', action='store_true',
              help = "avoid clustering samples" )
+        arg( '--no_plot_sclustering', action='store_true',
+             help = "avoid plotting the sample dendrogram" )
         arg( '--flinkage', type=str, default="average",
              help = "Linkage method for feature clustering [default average]")
         arg( '--slinkage', type=str, default="average",
@@ -473,6 +477,8 @@ class Heatmap:
              help = "Height of the metadata panel [default 0.05 meaning 5%% of default heatmap height]")
         arg( '--metadata_separation', type=float, default=.01,
              help = "Distance between the metadata and data panels. [default 0.001 meaning 0.1%% of default heatmap height]")
+        arg( '--colorbar_font_size', type=float, default=12,
+             help = "Color bar label font size [default 12]")
         arg( '--image_size', type=float, default=8,
              help = "Size of the largest between width and eight size for the image in inches [default 8]")
         arg( '--cell_aspect_ratio', type=float, default=1.0,
@@ -679,11 +685,13 @@ class Heatmap:
         #ax_hm.set_xlim([0,self.ns])
         ax_cm = plt.subplot(gs[3], axisbg = 'r', frameon = False)
         #fig.colorbar(im, ax_cm, orientation = 'horizontal', spacing = 'proportional', format = ticker.LogFormatterMathtext() )
-        fig.colorbar(im, ax_cm, orientation = 'horizontal', spacing='proportional' if self.args.sqrt_scale else 'uniform' ) # , format = ticker.LogFormatterMathtext() )
+        cbar = fig.colorbar(im, ax_cm, orientation = 'horizontal', spacing='proportional' if self.args.sqrt_scale else 'uniform' ) # , format = ticker.LogFormatterMathtext() )
+        cbar.ax.tick_params(labelsize=args.colorbar_font_size)
 
         if not self.args.no_sclustering:
             ax_den_top = plt.subplot(gs[11], axisbg = 'r', frameon = False)
-            sph._plot_dendrogram( self.sdendrogram['icoord'], self.sdendrogram['dcoord'], self.sdendrogram['ivl'],
+            if not self.args.no_plot_sclustering:
+                sph._plot_dendrogram( self.sdendrogram['icoord'], self.sdendrogram['dcoord'], self.sdendrogram['ivl'],
                                   self.ns + 1, self.nf + 1, 1, 'top', no_labels=True,
                                   color_list=self.sdendrogram['color_list'] )
             ymax = max([max(a) for a in self.sdendrogram['dcoord']])
@@ -691,7 +699,8 @@ class Heatmap:
             make_ticklabels_invisible( ax_den_top )
         if not self.args.no_fclustering:
             ax_den_right = plt.subplot(gs[22], axisbg = 'b', frameon = False)
-            sph._plot_dendrogram(   self.fdendrogram['icoord'], self.fdendrogram['dcoord'], self.fdendrogram['ivl'],
+            if not self.args.no_plot_fclustering:
+                sph._plot_dendrogram(   self.fdendrogram['icoord'], self.fdendrogram['dcoord'], self.fdendrogram['ivl'],
                                     self.ns + 1, self.nf + 1, 1, 'right', no_labels=True,
                                     color_list=self.fdendrogram['color_list'] )
             xmax = max([max(a) for a in self.fdendrogram['dcoord']])
