@@ -451,6 +451,8 @@ class Heatmap:
              help = "Log scale" )
         arg( '--title', type=str, default=None,
              help = "Title of the plot" )
+        arg( '--title_fontsize', type=int, default=10,
+             help = "Font size of the title" )
         arg( '-s', '--sqrt_scale', action='store_true',
              help = "Square root scale" )
         arg( '--no_slabels', action='store_true',
@@ -708,7 +710,10 @@ class Heatmap:
             make_ticklabels_invisible( ax_den_right )
 
         if self.args.title:
-            fig.suptitle(self.args.title, x = 0.5, horizontalalignment = 'center')
+            fig.suptitle(self.args.title, 
+                         x = 0.5, 
+                         horizontalalignment = 'center', 
+                         fontsize = self.args.title_fontsize)
         if not self.args.out:
             plt.show( )
         else:
