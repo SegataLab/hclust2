@@ -269,34 +269,36 @@ class DistMatrix:
                 self.s_cdist_matrix = pickle.load( inp )
         elif args.load_dist_matrix_s:
             self.s_cdist_matrix = spd.squareform( np.matrix( pd.read_table( args.load_dist_matrix_s, sep ='\t', index_col = None, header = None  ) ) )
-        else: 
+        else:
+            done = False
             dt = self.numpy_full_matrix.transpose()
             
             if self.sdf == "spearman":
                 dt_ranked = np.matrix([stats.rankdata(d) for d in dt])
                 self.s_cdist_matrix = spd.pdist( dt_ranked, "correlation" )
-                return
+                done = True
  
             if self.sdf == 'mhamming':
                 dt_ranked = np.matrix([[(0 if l == 0 else 1) for l in np.nditer(d)] for d in dt])
                 self.s_cdist_matrix = spd.pdist( dt_ranked, "hamming" )
-                return
+                done = True
             
             if self.sdf == 'lbraycurtis':
                 dt_ranked = np.matrix([[(math.log(l) if l else 0.0) for l in np.nditer(d)] for d in dt])
                 self.s_cdist_matrix = spd.pdist( dt_ranked, "braycurtis" )
-                return
+                done = True
             
             if self.sdf == 'sbraycurtis':
                 dt_ranked = np.matrix([[(math.sqrt(l) if l else 0.0) for l in np.nditer(d)] for d in dt])
                 self.s_cdist_matrix = spd.pdist( dt_ranked, "braycurtis" )
-                return
+                done = True
            
             if self.sdf == "pearson":
                 self.sdf = 'correlation'
-        
-            self.s_cdist_matrix = spd.pdist( dt, self.sdf )
-        
+
+            if not done:
+                self.s_cdist_matrix = spd.pdist( dt, self.sdf )
+
         if args.save_pickled_dist_matrix_s:
             with open( args.save_pickled_dist_matrix_s, "wb" ) as outf:
                 pickle.dump( self.s_cdist_matrix, outf )
