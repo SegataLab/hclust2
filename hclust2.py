@@ -150,7 +150,13 @@ class DataMatrix:
         
         def select( perc, top  ): 
             self.table['perc'] = self.table.apply(lambda x: stats.scoreatpercentile(x,perc),axis=1)
-            m = sorted(self.table['perc'])[-top]
+
+            if top <= len(self.table['perc']):
+                m = sorted(self.table['perc'])[-top]
+            else:
+                print 'W', 'ftop param value (', top, ') out of bound (len:', len(self.table['perc']), '). Selecting all the values from input.'
+                m = sorted(self.table['perc'])[0]
+
             self.table = self.table[self.table['perc'] >= m ]
             del self.table['perc'] 
         
@@ -769,7 +775,9 @@ if __name__ == '__main__':
         dm = DataMatrix( args.inp, args ) 
         if args.out_table:
             dm.save_matrix( args.out_table )
-        
+
+        # print dm.table.axes
+ 
         distm = DistMatrix( dm.get_numpy_matrix(), args = args )
         if not args.no_sclustering:
             distm.compute_s_dists()
