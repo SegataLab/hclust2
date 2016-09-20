@@ -1,6 +1,10 @@
 Hclust2 is a handy tool for plotting heat-maps with several useful options to produce high quality figures that can be used in publication.
 
-**Usage:**
+Below is the heatmap produced by Hclust2 on the MetaPhlAn2 abundance profiles of HMP and HMP1-phase2 samples (microbial species and samples are hierarchically clustered).
+
+![Optimized-hmp_profiling_background.png](https://bitbucket.org/repo/gy6GaR/images/1429983578-Optimized-hmp_profiling_background.png)
+
+# Usage #
 
 ```
 #!python
