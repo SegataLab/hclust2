@@ -3,7 +3,7 @@
 import sys
 import numpy as np
 import matplotlib.ticker as ticker
-import scipy.spatial.distance as spd 
+import scipy.spatial.distance as spd
 import scipy.cluster.hierarchy as sph
 from scipy import stats
 import matplotlib
@@ -15,7 +15,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import cPickle as pickle
-import math 
+import math
 
 sys.setrecursionlimit(10000)
 
@@ -93,7 +93,7 @@ class SqrtNorm(matplotlib.colors.Normalize):
 
 class DataMatrix:
     datatype = 'data_matrix'
-    
+
     @staticmethod
     def input_parameters( parser ):
         dm_param = parser.add_argument_group('Input data matrix parameters')
@@ -114,22 +114,22 @@ class DataMatrix:
         arg( '--skip_rows', type=str, default=None,
              help = "Row numbers to skip (0-indexed, comma separated) from the input file"
                     "[default None, meaning no rows skipped")
-        arg( '--sperc', type=int, default=90, 
+        arg( '--sperc', type=int, default=90,
              help = "Percentile of sample value distribution for sample selection" )
-        arg( '--fperc', type=int, default=90, 
+        arg( '--fperc', type=int, default=90,
              help = "Percentile of feature value distribution for sample selection" )
-        arg( '--stop', type=int, default=None, 
+        arg( '--stop', type=int, default=None,
              help = "Number of top samples to select (ordering based on percentile specified by --sperc)" )
-        arg( '--ftop', type=int, default=None, 
+        arg( '--ftop', type=int, default=None,
              help = "Number of top features to select (ordering based on percentile specified by --fperc)" )
         arg( '--def_na', type=float, default=None,
              help = "Set the default value for missing values [default None which means no replacement]")
 
     def __init__( self, input_file, args ):
         self.args = args
-        self.metadata_rows =  [] 
+        self.metadata_rows =  []
         self.metadata_table = None
-        toskip = [int(l) for l in self.args.skip_rows.split(",")]  if self.args.skip_rows else [] 
+        toskip = [int(l) for l in self.args.skip_rows.split(",")]  if self.args.skip_rows else []
         if self.args.metadata_rows:
             self.metadata_rows = list([int(a) for a in self.args.metadata_rows.split(",")])
             mdr = self.metadata_rows[::]
@@ -140,15 +140,15 @@ class DataMatrix:
         if self.metadata_rows:
             header = [self.args.fname_row]+self.metadata_rows if self.args.fname_row > -1 else self.metadata_rows
         else:
-            header = self.args.fname_row if self.args.fname_row > -1 else None        
-        self.table = pd.read_table( 
-                input_file, sep = self.args.sep, # skipinitialspace = True, 
+            header = self.args.fname_row if self.args.fname_row > -1 else None
+        self.table = pd.read_table(
+                input_file, sep = self.args.sep, # skipinitialspace = True,
                                   skiprows = sorted(toskip) if isinstance(toskip, list) else toskip,
                                   header = sorted(header) if isinstance(header, list) else header,
                                   index_col = self.args.sname_row if self.args.sname_row > -1 else None
                                     )
-        
-        def select( perc, top  ): 
+
+        def select( perc, top  ):
             self.table['perc'] = self.table.apply(lambda x: stats.scoreatpercentile(x,perc),axis=1)
 
             if top <= len(self.table['perc']):
@@ -158,40 +158,40 @@ class DataMatrix:
                 m = sorted(self.table['perc'])[0]
 
             self.table = self.table[self.table['perc'] >= m ]
-            del self.table['perc'] 
-        
+            del self.table['perc']
+
         if not self.args.def_na is None:
             self.table = self.table.fillna( self.args.def_na )
 
         if self.args.ftop:
             select( self.args.fperc, self.args.ftop )
-        
+
         if self.args.stop:
-            self.table = self.table.T 
-            select( self.args.sperc, self.args.stop ) 
             self.table = self.table.T
-        
+            select( self.args.sperc, self.args.stop )
+            self.table = self.table.T
+
 
         # add missing values
-        
-    def get_numpy_matrix( self ): 
+
+    def get_numpy_matrix( self ):
         return np.matrix(self.table)
-    
+
     #def get_metadata_matrix( self ):
     #    return self.table.columns
-    
+
     def get_snames( self ):
         #return list(self.table.index)
         return self.table.columns
-    
+
     def get_fnames( self ):
         #print self.table.columns.names
         #print self.table.columns
         return list(self.table.index)
-    
+
     def get_averages(self, by_row = True) :
         return self.table.mean(axis = 1 if by_row else 0)
-    
+
     def save_matrix( self, output_file ):
         self.table.to_csv( output_file, sep = '\t' )
 
@@ -226,16 +226,16 @@ class DistMatrix:
              help = "Save the distance matrix for features to file [default None].")
         arg( '--save_pickled_dist_matrix_s', type=str, default=None,
              help = "Save the distance matrix for samples to file [default None].")
-    
+
     def __init__( self, data, args = None ):
         self.sdf = args.s_dist_f
         self.fdf = args.f_dist_f
 
         self.s_cdist_matrix, self.f_cdist_matrix = None, None
 
-        self.numpy_full_matrix = (data if 
+        self.numpy_full_matrix = (data if
                 type(data) == np.matrixlib.defmatrix.matrix else None)
-    
+
     def compute_f_dists( self ):
         if args.load_pickled_dist_matrix_f:
             with open( args.load_pickled_dist_matrix_f ) as inp:
@@ -244,17 +244,17 @@ class DistMatrix:
             self.f_cdist_matrix = spd.squareform( np.matrix( pd.read_table( args.load_dist_matrix_f, sep ='\t', index_col = None, header = None  ) ) )
         else:
             dt = self.numpy_full_matrix
-            
+
             if self.fdf == "spearman":
                 dt_ranked = np.matrix([stats.rankdata(d) for d in dt])
                 self.f_cdist_matrix = spd.pdist( dt_ranked, "correlation" )
                 return
-       
+
             if self.fdf == 'mhamming':
                 dt_ranked = np.matrix([[(0 if l == 0 else 1) for l in np.nditer(d)] for d in dt])
                 self.f_cdist_matrix = spd.pdist( dt_ranked, "hamming" )
                 return
-            
+
             if self.fdf == 'lbraycurtis':
                 dt_ranked = np.matrix([[(math.log(l) if l else 0.0) for l in np.nditer(d)] for d in dt])
                 self.f_cdist_matrix = spd.pdist( dt_ranked, "braycurtis" )
@@ -268,7 +268,7 @@ class DistMatrix:
         if args.save_pickled_dist_matrix_f:
             with open( args.save_pickled_dist_matrix_f, "wb" ) as outf:
                 pickle.dump( self.f_cdist_matrix, outf )
-    
+
     def compute_s_dists( self ):
         if args.load_pickled_dist_matrix_s:
             with open( args.load_pickled_dist_matrix_s ) as inp:
@@ -278,27 +278,27 @@ class DistMatrix:
         else:
             done = False
             dt = self.numpy_full_matrix.transpose()
-            
+
             if self.sdf == "spearman":
                 dt_ranked = np.matrix([stats.rankdata(d) for d in dt])
                 self.s_cdist_matrix = spd.pdist( dt_ranked, "correlation" )
                 done = True
- 
+
             if self.sdf == 'mhamming':
                 dt_ranked = np.matrix([[(0 if l == 0 else 1) for l in np.nditer(d)] for d in dt])
                 self.s_cdist_matrix = spd.pdist( dt_ranked, "hamming" )
                 done = True
-            
+
             if self.sdf == 'lbraycurtis':
                 dt_ranked = np.matrix([[(math.log(l) if l else 0.0) for l in np.nditer(d)] for d in dt])
                 self.s_cdist_matrix = spd.pdist( dt_ranked, "braycurtis" )
                 done = True
-            
+
             if self.sdf == 'sbraycurtis':
                 dt_ranked = np.matrix([[(math.sqrt(l) if l else 0.0) for l in np.nditer(d)] for d in dt])
                 self.s_cdist_matrix = spd.pdist( dt_ranked, "braycurtis" )
                 done = True
-           
+
             if self.sdf == "pearson":
                 self.sdf = 'correlation'
 
@@ -323,7 +323,7 @@ class HClustering:
         cl_param = parser.add_argument_group('Clustering parameters')
         arg = cl_param.add_argument
 
-        linkage_method = [ "single","complete","average", 
+        linkage_method = [ "single","complete","average",
                            "weighted","centroid","median",
                            "ward" ]
         arg( '--no_fclustering', action='store_true',
@@ -342,7 +342,7 @@ class HClustering:
     def get_reordered_matrix( self, matrix, sclustering = True, fclustering = True ):
         if not sclustering and not fclustering:
             return matrix
-        
+
         idx1 = self.sdendrogram['leaves'] if sclustering else None   # !!!!!!!!!!!
         idx2 = self.fdendrogram['leaves'][::-1] if fclustering else None
 
@@ -358,7 +358,7 @@ class HClustering:
 
     def get_reordered_feature_labels( self, flabels ):
         return [flabels[i] for i in self.fdendrogram['leaves']]
-    
+
     def __init__( self, s_dm, f_dm, args = None ):
         self.s_dm = s_dm
         self.f_dm = f_dm
@@ -369,31 +369,31 @@ class HClustering:
         self.fdendrogram = None
 
     def shcluster( self, dendrogram = True ):
-        self.shclusters = sph.linkage( self.s_dm, args.slinkage ) 
+        self.shclusters = sph.linkage( self.s_dm, args.slinkage )
         if dendrogram:
             self.sdendrogram = sph.dendrogram( self.shclusters, no_plot=True )
 
     def fhcluster( self, dendrogram = True ):
-        self.fhclusters = sph.linkage( self.f_dm, args.flinkage ) 
+        self.fhclusters = sph.linkage( self.f_dm, args.flinkage )
         if dendrogram:
             self.fdendrogram = sph.dendrogram( self.fhclusters, no_plot=True )
-    
+
     def get_shclusters( self ):
         return self.shclusters
-    
+
     def get_fhclusters( self ):
         return self.fhclusters
-    
+
     def get_sdendrogram( self ):
         return self.sdendrogram
-    
+
     def get_fdendrogram( self ):
         return self.fdendrogram
 
 
 class Heatmap:
     datatype = 'heatmap'
-   
+
     bbcyr = {'red':  (  (0.0, 0.0, 0.0),
                         (0.25, 0.0, 0.0),
                         (0.50, 0.0, 0.0),
@@ -438,12 +438,12 @@ class Heatmap:
                         (0.33, 1.0, 1.0),
                         (0.66, 0.0, 0.0),
                         (1.0, 0.0, 1.0))}
-    
+
 
     my_colormaps = [    ('bbcyr',bbcyr),
                         ('bbcry',bbcry),
                         ('bcry',bcry)]
-   
+
     #dcols = ['#ca0000','#0087ff','#00ba1d','#cf00ff','#00dbe2','#ffaf00','#0017f4','#006012','#e175ff','#877878','#050505','#b5cf00','#ff8a8a','#aa6400','#50008a','#00ff58']
     dcols = ['#ca0000','#0087ff','#00ba1d','#cf00ff','#00dbe2','#ffaf00','#0017f4','#006012','#e175ff','#877878','#505050','#b5cf00','#ff8a8a','#aa6400','#50008a','#00ff58','#6F1A1A','#FFCC99','#33FF33','#009999','#CC0066','#99004c','#C0C0C0',"#666600","#CCFF99","#660066","#9370DB","#D8BFD8","#BC8F8F","#2F4F4F","#FF6347","#CD5C5C","#FF0000","#00FF00","#000080"]
 
@@ -515,7 +515,7 @@ class Heatmap:
         arg( '--nan_c', type=str, default = None,
              help = "Color to use for nan cells  [default None]")
 
-        
+
 
         """
         arg( '--', type=str, default="average",
@@ -534,7 +534,7 @@ class Heatmap:
         self.ns,self.nf = self.numpy_matrix.shape
         self.args = args
 
-    def make_legend( self, dmap, titles, out_fn ): 
+    def make_legend( self, dmap, titles, out_fn ):
         figlegend = plt.figure(figsize=(1+3*len(titles),2), frameon = False)
 
         gs = gridspec.GridSpec( 1, len(dmap), wspace = 2.0  )
@@ -551,7 +551,7 @@ class Heatmap:
         #remove_splines( legax )
             legax.set_xticks([])
             legax.set_yticks([])
-            legax.legend( loc = 2, frameon = False, title = title) 
+            legax.legend( loc = 2, frameon = False, title = title)
         """
                       ncol = legend_ncol, bbox_to_anchor=(1.01, 3.),
                       borderpad = 0.0, labelspacing = 0.0,
@@ -561,7 +561,7 @@ class Heatmap:
         """
         if out_fn:
             figlegend.savefig(out_fn, bbox_inches='tight')
-    
+
     def draw( self ):
 
         rat = float(self.ns)/self.nf
@@ -570,6 +570,7 @@ class Heatmap:
         fig = plt.figure( figsize=(x,y), facecolor = 'w'  )
 
         cm = pylab.get_cmap(self.args.colormap)
+        # cm = plt.get_cmap(self.args.colormap)
         bottom_col = [  cm._segmentdata['red'][0][1],
                         cm._segmentdata['green'][0][1],
                         cm._segmentdata['blue'][0][1]   ]
@@ -591,7 +592,7 @@ class Heatmap:
                  tl.set_visible(False)
             ax.set_xticks([])
             ax.set_yticks([])
-      
+
         def remove_splines( ax ):
             for v in ['right','left','top','bottom']:
                 ax.spines[v].set_color('none')
@@ -599,29 +600,29 @@ class Heatmap:
         def shrink_labels( labels, n ):
             shrink = lambda x: x[:n/2]+" [...] "+x[-n/2:]
             return [(shrink(str(l)) if len(str(l)) > n else l) for l in labels]
-        
 
-        #gs = gridspec.GridSpec( 4, 2, 
-        #                        width_ratios=[1.0-fr_ns,fr_ns], 
-        #                        height_ratios=[.03,0.03,1.0-fr_nf,fr_nf], 
+
+        #gs = gridspec.GridSpec( 4, 2,
+        #                        width_ratios=[1.0-fr_ns,fr_ns],
+        #                        height_ratios=[.03,0.03,1.0-fr_nf,fr_nf],
         #                        wspace = 0.0, hspace = 0.0 )
-        
+
         fr_ns = float(self.ns)/max([self.ns,self.nf])
         fr_nf = float(self.nf)/max([self.ns,self.nf])
-       
+
         buf_space = 0.05
         minv = min( [buf_space*8, 8*rat*buf_space] )
         if minv < 0.05:
             buf_space /= minv/0.05
-        metadata_height = self.args.metadata_height if type(snames[0]) is tuple and len(snames[0]) > 1 else 0.000001 
-        gs = gridspec.GridSpec( 6, 4, 
-                                width_ratios=[ buf_space, buf_space*2, .08*self.args.fdend_width,0.9], 
-                                height_ratios=[ buf_space, buf_space*2, .08*self.args.sdend_height, metadata_height, self.args.metadata_separation, 0.9], 
+        metadata_height = self.args.metadata_height if type(snames[0]) is tuple and len(snames[0]) > 1 else 0.000001
+        gs = gridspec.GridSpec( 6, 4,
+                                width_ratios=[ buf_space, buf_space*2, .08*self.args.fdend_width,0.9],
+                                height_ratios=[ buf_space, buf_space*2, .08*self.args.sdend_height, metadata_height, self.args.metadata_separation, 0.9],
                                 wspace = 0.0, hspace = 0.0 )
 
         ax_hm = plt.subplot(gs[23], axisbg = bottom_col  )
         ax_metadata = plt.subplot(gs[15], axisbg = bottom_col  )
-        ax_hm_y2 = ax_hm.twinx() 
+        ax_hm_y2 = ax_hm.twinx()
 
         norm_f = matplotlib.colors.Normalize
         if self.args.log_scale:
@@ -638,22 +639,22 @@ class Heatmap:
                 values.append([mmap[v] for v in m])
                 ndv += len(mmap)
                 maps.append(mmap)
-            dcols = [] 
+            dcols = []
             mdmat = np.matrix(values)
             while len(dcols) < ndv:
                 dcols += self.dcols
-            cmap = matplotlib.colors.ListedColormap(dcols[:ndv]) 
+            cmap = matplotlib.colors.ListedColormap(dcols[:ndv])
             bounds = [float(f)-0.5 for f in range(ndv+1)]
-            imm = ax_metadata.imshow( mdmat, #origin='lower', 
-                    interpolation = 'nearest',  
-                                    aspect='auto', 
-                                    extent = [0, self.nf, 0, self.ns], 
+            imm = ax_metadata.imshow( mdmat, #origin='lower',
+                    interpolation = 'nearest',
+                                    aspect='auto',
+                                    extent = [0, self.nf, 0, self.ns],
                                     cmap=cmap,
                                     vmin=bounds[0],
                                     vmax=bounds[-1],
                                     )
             remove_splines( ax_metadata )
-            ax_metadata_y2 = ax_metadata.twinx() 
+            ax_metadata_y2 = ax_metadata.twinx()
             ax_metadata_y2.set_ylim(0,len(self.fnames_meta))
             ax_metadata.set_yticks([])
             ax_metadata_y2.set_ylim(0,len(self.fnames_meta))
@@ -664,16 +665,16 @@ class Heatmap:
             ax_metadata.set_yticks([])
 
         ax_metadata.set_xticks([])
-        
-        im = ax_hm.imshow( self.numpy_matrix, #origin='lower', 
-                                interpolation = 'nearest',  aspect='auto', 
-                                extent = [0, self.nf, 0, self.ns], 
-                                cmap=cm, 
+
+        im = ax_hm.imshow( self.numpy_matrix, #origin='lower',
+                                interpolation = 'nearest',  aspect='auto',
+                                extent = [0, self.nf, 0, self.ns],
+                                cmap=cm,
                                 vmin=self.args.minv,
-                                vmax=self.args.maxv, 
+                                vmax=self.args.maxv,
                                 norm = norm_f( vmin=minv if minv > 0.0 else None, vmax=maxv)
                                 )
-        
+
         #ax_hm.set_ylim([0,800])
         ax_hm.set_xticks(np.arange(len(list(snames)))+0.5)
         if not self.args.no_slabels:
@@ -718,16 +719,16 @@ class Heatmap:
             make_ticklabels_invisible( ax_den_right )
 
         if self.args.title:
-            fig.suptitle(self.args.title, 
-                         x = 0.5, 
-                         horizontalalignment = 'center', 
+            fig.suptitle(self.args.title,
+                         x = 0.5,
+                         horizontalalignment = 'center',
                          fontsize = self.args.title_fontsize)
         if not self.args.out:
             plt.show( )
         else:
             fig.savefig( self.args.out, bbox_inches='tight', dpi = self.args.dpi )
-            if maps: 
-                self.make_legend( maps, fnames_meta, self.args.legend_file ) 
+            if maps:
+                self.make_legend( maps, fnames_meta, self.args.legend_file )
 
 
 
@@ -739,7 +740,7 @@ class ReadCmd:
 
         p = ap.ArgumentParser( description= "TBA" )
         arg = p.add_argument
-        
+
         arg( '-i', '--inp', '--in', metavar='INPUT_FILE', type=str, nargs='?', default=sys.stdin,
              help= "The input matrix" )
         arg( '-o', '--out', metavar='OUTPUT_FILE', type=str, nargs='?', default=None,
@@ -748,7 +749,7 @@ class ReadCmd:
              help= "The output file for the legend of the provided metadata" )
 
         input_types = [DataMatrix.datatype,DistMatrix.datatype]
-        arg( '-t', '--input_type', metavar='INPUT_TYPE', type=str, choices = input_types, 
+        arg( '-t', '--input_type', metavar='INPUT_TYPE', type=str, choices = input_types,
              default='data_matrix',
              help= "The input type can be a data matrix or distance matrix [default data_matrix]" )
 
@@ -766,18 +767,18 @@ class ReadCmd:
         return self.args
 
 if __name__ == '__main__':
-     
+
     read = ReadCmd( )
     read.check_consistency()
     args = read.get_args()
-    
+
     if args.input_type == DataMatrix.datatype:
-        dm = DataMatrix( args.inp, args ) 
+        dm = DataMatrix( args.inp, args )
         if args.out_table:
             dm.save_matrix( args.out_table )
 
         # print dm.table.axes
- 
+
         distm = DistMatrix( dm.get_numpy_matrix(), args = args )
         if not args.no_sclustering:
             distm.compute_s_dists()
@@ -794,13 +795,13 @@ if __name__ == '__main__':
         cl.shcluster()
     if not args.no_fclustering:
         cl.fhcluster()
-    
+
     hmp = dm.get_numpy_matrix()
     fnames = dm.get_fnames()
     snames = dm.get_snames()
     fnames_meta = snames.names[1:]
     #if not args.no_sclustering or not args.no_fclustering ):
-    
+
     hmp = cl.get_reordered_matrix( hmp, sclustering = not args.no_sclustering, fclustering = not args.no_fclustering  )
     if not args.no_sclustering:
         snames = cl.get_reordered_sample_labels( snames )
