@@ -374,6 +374,7 @@ class HClustering:
             self.sdendrogram = sph.dendrogram( self.shclusters, no_plot=True )
 
     def fhcluster( self, dendrogram = True ):
+        self.f_dm = [abs(round(i,15)) for i in self.f_dm]
         self.fhclusters = sph.linkage( self.f_dm, args.flinkage )
         if dendrogram:
             self.fdendrogram = sph.dendrogram( self.fhclusters, no_plot=True )
