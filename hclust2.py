@@ -8,6 +8,7 @@ import scipy.cluster.hierarchy as sph
 from scipy import stats
 import matplotlib
 matplotlib.use('Agg')
+matplotlib.rcParams['svg.fonttype'] = 'none'
 import pylab
 import pandas as pd
 from matplotlib.patches import Rectangle
