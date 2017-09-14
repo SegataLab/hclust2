@@ -15,7 +15,10 @@ from matplotlib.patches import Rectangle
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except:
+    import pickle # Python3 compatible (Lauren McIver)
 import math
 
 sys.setrecursionlimit(10000)
