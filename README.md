@@ -1,3 +1,5 @@
+This fork has been updated to accomodate the now deprecated axisbg (now facecolor) of matplotlib 2+, and the print syntax of Python 3+.
+
 Hclust2 is a handy tool for plotting heat-maps with several useful options to produce high quality figures that can be used in publication.
 
 Below is the heatmap produced by Hclust2 on the MetaPhlAn2 abundance profiles of HMP and HMP1-phase2 samples (microbial species and samples are hierarchically clustered).
