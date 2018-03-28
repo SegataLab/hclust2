@@ -159,9 +159,9 @@ class DataMatrix:
                 m = sorted(self.table['perc'])[-top]
             else:
                 try:
-					print 'W', 'ftop param value (', top, ') out of bound (len:', len(self.table['perc']), '). Selecting all the values from input.'
+                    print 'W', 'ftop param value (', top, ') out of bound (len:', len(self.table['perc']), '). Selecting all the values from input.'
 				except:gedit
-					print('W ftop param value (' + str(top) + ') out of bound (len:' + str(len(self.table['perc'])) + '). Selecting all the values from input.')
+                    print('W ftop param value (' + str(top) + ') out of bound (len:' + str(len(self.table['perc'])) + '). Selecting all the values from input.')
                 m = sorted(self.table['perc'])[0]
 
             self.table = self.table[self.table['perc'] >= m ]
