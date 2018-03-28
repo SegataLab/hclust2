@@ -160,7 +160,7 @@ class DataMatrix:
             else:
                 try:
                     print 'W', 'ftop param value (', top, ') out of bound (len:', len(self.table['perc']), '). Selecting all the values from input.'
-				except:gedit
+				except:
                     print('W ftop param value (' + str(top) + ') out of bound (len:' + str(len(self.table['perc'])) + '). Selecting all the values from input.')
                 m = sorted(self.table['perc'])[0]
 
