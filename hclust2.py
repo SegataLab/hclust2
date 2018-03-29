@@ -57,7 +57,7 @@ class SqrtNorm(matplotlib.colors.Normalize):
                 mask = (resdat <= 0)
             else:
                 mask |= resdat <= 0
-            matplotlib.cbook._putmask(resdat, mask, 1)
+            np.copyto(resdat, 1, where=mask)
             np.sqrt(resdat, resdat)
             resdat -= np.sqrt(vmin)
             resdat /= (np.sqrt(vmax) - np.sqrt(vmin))
