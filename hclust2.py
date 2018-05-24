@@ -8,13 +8,17 @@ import scipy.cluster.hierarchy as sph
 from scipy import stats
 import matplotlib
 matplotlib.use('Agg')
+matplotlib.rcParams['svg.fonttype'] = 'none'
 import pylab
 import pandas as pd
 from matplotlib.patches import Rectangle
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except:
+    import pickle # Python3 compatible (Lauren McIver)
 import math
 
 sys.setrecursionlimit(10000)
@@ -53,7 +57,7 @@ class SqrtNorm(matplotlib.colors.Normalize):
                 mask = (resdat <= 0)
             else:
                 mask |= resdat <= 0
-            matplotlib.cbook._putmask(resdat, mask, 1)
+            np.copyto(resdat, 1, where=mask)
             np.sqrt(resdat, resdat)
             resdat -= np.sqrt(vmin)
             resdat /= (np.sqrt(vmax) - np.sqrt(vmin))
@@ -154,7 +158,7 @@ class DataMatrix:
             if top <= len(self.table['perc']):
                 m = sorted(self.table['perc'])[-top]
             else:
-                print 'W', 'ftop param value (', top, ') out of bound (len:', len(self.table['perc']), '). Selecting all the values from input.'
+                print('W ftop param value (' + str(top) + ') out of bound (len:' + str(len(self.table['perc'])) + '). Selecting all the values from input.')
                 m = sorted(self.table['perc'])[0]
 
             self.table = self.table[self.table['perc'] >= m ]
@@ -374,6 +378,7 @@ class HClustering:
             self.sdendrogram = sph.dendrogram( self.shclusters, no_plot=True )
 
     def fhcluster( self, dendrogram = True ):
+        self.f_dm = [abs(round(i,15)) for i in self.f_dm]
         self.fhclusters = sph.linkage( self.f_dm, args.flinkage )
         if dendrogram:
             self.fdendrogram = sph.dendrogram( self.fhclusters, no_plot=True )
@@ -620,8 +625,8 @@ class Heatmap:
                                 height_ratios=[ buf_space, buf_space*2, .08*self.args.sdend_height, metadata_height, self.args.metadata_separation, 0.9],
                                 wspace = 0.0, hspace = 0.0 )
 
-        ax_hm = plt.subplot(gs[23], axisbg = bottom_col  )
-        ax_metadata = plt.subplot(gs[15], axisbg = bottom_col  )
+        ax_hm = plt.subplot(gs[23], facecolor = bottom_col  )
+        ax_metadata = plt.subplot(gs[15], facecolor = bottom_col  )
         ax_hm_y2 = ax_hm.twinx()
 
         norm_f = matplotlib.colors.Normalize
@@ -694,13 +699,13 @@ class Heatmap:
         ax_hm.tick_params(length=0)
         ax_hm_y2.tick_params(length=0)
         #ax_hm.set_xlim([0,self.ns])
-        ax_cm = plt.subplot(gs[3], axisbg = 'r', frameon = False)
+        ax_cm = plt.subplot(gs[3], facecolor = 'r', frameon = False)
         #fig.colorbar(im, ax_cm, orientation = 'horizontal', spacing = 'proportional', format = ticker.LogFormatterMathtext() )
         cbar = fig.colorbar(im, ax_cm, orientation = 'horizontal', spacing='proportional' if self.args.sqrt_scale else 'uniform' ) # , format = ticker.LogFormatterMathtext() )
         cbar.ax.tick_params(labelsize=args.colorbar_font_size)
 
         if not self.args.no_sclustering:
-            ax_den_top = plt.subplot(gs[11], axisbg = 'r', frameon = False)
+            ax_den_top = plt.subplot(gs[11], facecolor = 'r', frameon = False)
             if not self.args.no_plot_sclustering:
                 sph._plot_dendrogram( self.sdendrogram['icoord'], self.sdendrogram['dcoord'], self.sdendrogram['ivl'],
                                   self.ns + 1, self.nf + 1, 1, 'top', no_labels=True,
@@ -709,7 +714,7 @@ class Heatmap:
             ax_den_top.set_ylim([0,ymax])
             make_ticklabels_invisible( ax_den_top )
         if not self.args.no_fclustering:
-            ax_den_right = plt.subplot(gs[22], axisbg = 'b', frameon = False)
+            ax_den_right = plt.subplot(gs[22], facecolor = 'b', frameon = False)
             if not self.args.no_plot_fclustering:
                 sph._plot_dendrogram(   self.fdendrogram['icoord'], self.fdendrogram['dcoord'], self.fdendrogram['ivl'],
                                     self.ns + 1, self.nf + 1, 1, 'right', no_labels=True,
@@ -812,9 +817,3 @@ if __name__ == '__main__':
 
     hm = Heatmap( hmp, cl.sdendrogram, cl.fdendrogram, snames, fnames, fnames_meta, args = args )
     hm.draw()
-
-
-
-
-
-
