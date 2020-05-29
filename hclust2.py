@@ -603,7 +603,7 @@ class Heatmap:
                 ax.spines[v].set_color('none')
 
         def shrink_labels( labels, n ):
-            shrink = lambda x: x[:n/2]+" [...] "+x[-n/2:]
+            shrink = lambda x: x[:int(n/2)]+" [...] "+x[-int(n/2):]
             return [(shrink(str(l)) if len(str(l)) > n else l) for l in labels]
 
 
