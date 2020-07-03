@@ -145,7 +145,7 @@ class DataMatrix:
             header = [self.args.fname_row]+self.metadata_rows if self.args.fname_row > -1 else self.metadata_rows
         else:
             header = self.args.fname_row if self.args.fname_row > -1 else None
-        self.table = pd.read_table(
+        self.table = pd.read_csv(
                 input_file, sep = self.args.sep, # skipinitialspace = True,
                                   skiprows = sorted(toskip) if isinstance(toskip, list) else toskip,
                                   header = sorted(header) if isinstance(header, list) else header,
@@ -231,21 +231,22 @@ class DistMatrix:
         arg( '--save_pickled_dist_matrix_s', type=str, default=None,
              help = "Save the distance matrix for samples to file [default None].")
 
-    def __init__( self, data, args = None ):
-        self.sdf = args.s_dist_f
-        self.fdf = args.f_dist_f
+    def __init__( self, data, args ):
+        self.args = args
+        self.sdf = self.args.s_dist_f
+        self.fdf = self.args.f_dist_f
 
         self.s_cdist_matrix, self.f_cdist_matrix = None, None
 
         self.numpy_full_matrix = (data if
                 type(data) == np.matrixlib.defmatrix.matrix else None)
 
-    def compute_f_dists( self ):
-        if args.load_pickled_dist_matrix_f:
-            with open( args.load_pickled_dist_matrix_f ) as inp:
+    def compute_f_dists( self):
+        if self.args.load_pickled_dist_matrix_f:
+            with open( self.args.load_pickled_dist_matrix_f ) as inp:
                 self.f_cdist_matrix = pickle.load( inp )
-        elif args.load_dist_matrix_f:
-            self.f_cdist_matrix = spd.squareform( np.matrix( pd.read_table( args.load_dist_matrix_f, sep ='\t', index_col = None, header = None  ) ) )
+        elif self.args.load_dist_matrix_f:
+            self.f_cdist_matrix = spd.squareform( np.matrix( pd.read_table( self.args.load_dist_matrix_f, sep ='\t', index_col = None, header = None  ) ) )
         else:
             dt = self.numpy_full_matrix
 
@@ -269,16 +270,16 @@ class DistMatrix:
 
             self.f_cdist_matrix = spd.pdist( dt, self.fdf )
 
-        if args.save_pickled_dist_matrix_f:
-            with open( args.save_pickled_dist_matrix_f, "wb" ) as outf:
+        if self.args.save_pickled_dist_matrix_f:
+            with open( self.args.save_pickled_dist_matrix_f, "wb" ) as outf:
                 pickle.dump( self.f_cdist_matrix, outf )
 
     def compute_s_dists( self ):
-        if args.load_pickled_dist_matrix_s:
-            with open( args.load_pickled_dist_matrix_s ) as inp:
+        if self.args.load_pickled_dist_matrix_s:
+            with open( self.args.load_pickled_dist_matrix_s ) as inp:
                 self.s_cdist_matrix = pickle.load( inp )
-        elif args.load_dist_matrix_s:
-            self.s_cdist_matrix = spd.squareform( np.matrix( pd.read_table( args.load_dist_matrix_s, sep ='\t', index_col = None, header = None  ) ) )
+        elif self.args.load_dist_matrix_s:
+            self.s_cdist_matrix = spd.squareform( np.matrix( pd.read_table( self.args.load_dist_matrix_s, sep ='\t', index_col = None, header = None  ) ) )
         else:
             done = False
             dt = self.numpy_full_matrix.transpose()
@@ -309,8 +310,8 @@ class DistMatrix:
             if not done:
                 self.s_cdist_matrix = spd.pdist( dt, self.sdf )
 
-        if args.save_pickled_dist_matrix_s:
-            with open( args.save_pickled_dist_matrix_s, "wb" ) as outf:
+        if self.args.save_pickled_dist_matrix_s:
+            with open( self.args.save_pickled_dist_matrix_s, "wb" ) as outf:
                 pickle.dump( self.s_cdist_matrix, outf )
 
     def get_s_dm( self ):
@@ -373,13 +374,13 @@ class HClustering:
         self.fdendrogram = None
 
     def shcluster( self, dendrogram = True ):
-        self.shclusters = sph.linkage(self.s_dm, method=args.slinkage)
+        self.shclusters = sph.linkage(self.s_dm, method=self.args.slinkage)
         if dendrogram:
             self.sdendrogram = sph.dendrogram( self.shclusters, no_plot=True )
 
     def fhcluster( self, dendrogram = True ):
         self.f_dm = [abs(round(i,15)) for i in self.f_dm]
-        self.fhclusters = sph.linkage(self.f_dm, method=args.flinkage)
+        self.fhclusters = sph.linkage(self.f_dm, method=self.args.flinkage)
         if dendrogram:
             self.fdendrogram = sph.dendrogram( self.fhclusters, no_plot=True )
 
@@ -498,11 +499,11 @@ class Heatmap:
              help = "Size of the largest between width and eight size for the image in inches [default 8]")
         arg( '--cell_aspect_ratio', type=float, default=1.0,
              help = "Aspect ratio between width and height for the cells of the heatmap [default 1.0]")
-        col_maps = ['Accent', 'Blues', 'BrBG', 'BuGn', 'BuPu', 'Dark2', 'GnBu',
-                    'Greens', 'Greys', 'OrRd', 'Oranges', 'PRGn', 'Paired',
-                    'Pastel1', 'Pastel2', 'PiYG', 'PuBu', 'PuBuGn', 'PuOr',
+        col_maps = ['Blues', 'BrBG', 'BuGn', 'BuPu', 'GnBu',
+                    'Greens', 'Greys', 'OrRd', 'Oranges', 'PRGn',
+                    'PiYG', 'PuBu', 'PuBuGn', 'PuOr',
                     'PuRd', 'Purples', 'RdBu', 'RdGy', 'RdPu', 'RdYlBu', 'RdYlGn',
-                    'Reds', 'Set1', 'Set2', 'Set3', 'Spectral', 'YlGn', 'YlGnBu',
+                    'Reds', 'Spectral', 'YlGn', 'YlGnBu',
                     'YlOrBr', 'YlOrRd', 'afmhot', 'autumn', 'binary', 'bone',
                     'brg', 'bwr', 'cool', 'copper', 'flag', 'gist_earth',
                     'gist_gray', 'gist_heat', 'gist_ncar', 'gist_rainbow',
@@ -619,7 +620,7 @@ class Heatmap:
         minv = min( [buf_space*8, 8*rat*buf_space] )
         if minv < 0.05:
             buf_space /= minv/0.05
-        metadata_height = self.args.metadata_height if type(snames[0]) is tuple and len(snames[0]) > 1 else 0.000001
+        metadata_height = self.args.metadata_height if type(self.snames[0]) is tuple and len(self.snames[0]) > 1 else 0.000001
         gs = gridspec.GridSpec( 6, 4,
                                 width_ratios=[ buf_space, buf_space*2, .08*self.args.fdend_width,0.9],
                                 height_ratios=[ buf_space, buf_space*2, .08*self.args.sdend_height, metadata_height, self.args.metadata_separation, 0.9],
@@ -637,8 +638,8 @@ class Heatmap:
         minv, maxv = 0.0, None
 
         maps, values, ndv = [], [], 0
-        if type(snames[0]) is tuple and len(snames[0]) > 1:
-            metadata = zip(*[list(s[1:]) for s in snames])
+        if type(self.snames[0]) is tuple and len(self.snames[0]) > 1:
+            metadata = zip(*[list(s[1:]) for s in self.snames])
             for m in metadata:
                 mmap = dict([(v[1],ndv+v[0]) for v in enumerate(list(set(m)))])
                 values.append([mmap[v] for v in m])
@@ -681,16 +682,16 @@ class Heatmap:
                                 )
 
         #ax_hm.set_ylim([0,800])
-        ax_hm.set_xticks(np.arange(len(list(snames)))+0.5)
+        ax_hm.set_xticks(np.arange(len(list(self.snames)))+0.5)
         if not self.args.no_slabels:
-            snames_short = shrink_labels( list([s[0] for s in snames]) if type(snames[0]) is tuple else snames, self.args.max_slabel_len )
+            snames_short = shrink_labels( list([s[0] for s in self.snames]) if type(self.snames[0]) is tuple else self.snames, self.args.max_slabel_len )
             ax_hm.set_xticklabels(snames_short,rotation=90,va='top',ha='center',size=self.args.slabel_size)
         else:
             ax_hm.set_xticklabels([])
         ax_hm_y2.set_ylim([0,self.ns])
-        ax_hm_y2.set_yticks(np.arange(len(fnames))+0.5)
+        ax_hm_y2.set_yticks(np.arange(len(self.fnames))+0.5)
         if not self.args.no_flabels:
-            fnames_short = shrink_labels( fnames, self.args.max_flabel_len )
+            fnames_short = shrink_labels( self.fnames, self.args.max_flabel_len )
             ax_hm_y2.set_yticklabels(fnames_short,va='center',size=self.args.flabel_size)
         else:
             ax_hm_y2.set_yticklabels( [] )
@@ -702,7 +703,7 @@ class Heatmap:
         ax_cm = plt.subplot(gs[3], facecolor = 'r', frameon = False)
         #fig.colorbar(im, ax_cm, orientation = 'horizontal', spacing = 'proportional', format = ticker.LogFormatterMathtext() )
         cbar = fig.colorbar(im, ax_cm, orientation = 'horizontal', spacing='proportional' if self.args.sqrt_scale else 'uniform' ) # , format = ticker.LogFormatterMathtext() )
-        cbar.ax.tick_params(labelsize=args.colorbar_font_size)
+        cbar.ax.tick_params(labelsize=self.args.colorbar_font_size)
 
         if not self.args.no_sclustering:
             ax_den_top = plt.subplot(gs[11], facecolor = 'r', frameon = False)
@@ -733,7 +734,7 @@ class Heatmap:
         else:
             fig.savefig( self.args.out, bbox_inches='tight', dpi = self.args.dpi )
             if maps:
-                self.make_legend( maps, fnames_meta, self.args.legend_file )
+                self.make_legend( maps, self.fnames_meta, self.args.legend_file )
 
 
 
@@ -771,8 +772,7 @@ class ReadCmd:
     def get_args( self ):
         return self.args
 
-if __name__ == '__main__':
-
+def hclust2_main():
     read = ReadCmd( )
     read.check_consistency()
     args = read.get_args()
@@ -817,3 +817,6 @@ if __name__ == '__main__':
 
     hm = Heatmap( hmp, cl.sdendrogram, cl.fdendrogram, snames, fnames, fnames_meta, args = args )
     hm.draw()
+
+if __name__ == '__main__':
+    hclust2_main()
