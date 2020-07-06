@@ -147,10 +147,13 @@ class DataMatrix:
             header = self.args.fname_row if self.args.fname_row > -1 else None
         self.table = pd.read_csv(
                 input_file, sep = self.args.sep, # skipinitialspace = True,
+                                  comment='#',
                                   skiprows = sorted(toskip) if isinstance(toskip, list) else toskip,
                                   header = sorted(header) if isinstance(header, list) else header,
                                   index_col = self.args.sname_row if self.args.sname_row > -1 else None
                                     )
+        if 'NCBI_tax_id' in self.table.columns:
+            self.table = self.table.drop(columns='NCBI_tax_id')
 
         def select( perc, top  ):
             self.table['perc'] = self.table.apply(lambda x: stats.scoreatpercentile(x,perc),axis=1)

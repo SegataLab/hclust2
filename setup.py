@@ -6,7 +6,7 @@ import os
 install_requires = ["numpy", "scipy", "pandas", "matplotlib"]
 setuptools.setup(
     name='hclust2',
-    version='0.99.1',
+    version='1.0.0',
     author='Francesco Asnicar',
     author_email='f.asnicar@unitn.it',
     url='http://github.com/SegataLab/hclust2/',
