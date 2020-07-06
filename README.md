@@ -5,6 +5,13 @@ Hclust2 is a handy tool for plotting heat-maps with several useful options to pr
 $ conda install -c bioconda hclust2
 ```
 
+or
+
+```
+$ pip install hclust2
+```
+
+
 ## Examples
 
 Below is the heatmap produced by Hclust2 on the MetaPhlAn2 abundance profiles of HMP and HMP1-phase2 samples (microbial species and samples are hierarchically clustered).
