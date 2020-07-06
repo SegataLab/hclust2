@@ -11,7 +11,7 @@ setuptools.setup(
     author_email='f.asnicar@unitn.it',
     url='http://github.com/SegataLab/hclust2/',
     py_modules=['hclust2'],
-    entry_points = { "console_scripts" : [ "hclust2 = hclust2:hclust2_main"] },
+    entry_points = { "console_scripts" : [ "hclust2.py = hclust2:hclust2_main"] },
     long_description_content_type='text/markdown',
     long_description=open('README.md').read(),
     description='Hclust2 is a handy tool for plotting heat-maps with several useful options to produce high quality figures that can be used in publication',
