@@ -679,9 +679,7 @@ class Heatmap:
                                 interpolation = 'nearest',  aspect='auto',
                                 extent = [0, self.nf, 0, self.ns],
                                 cmap=cm,
-                                vmin=self.args.minv,
-                                vmax=self.args.maxv,
-                                norm = norm_f( vmin=minv if minv > 0.0 else None, vmax=maxv)
+                                norm = norm_f( vmin=self.args.minv if self.args.minv > 0.0 else None, vmax=self.args.maxv)
                                 )
 
         #ax_hm.set_ylim([0,800])
